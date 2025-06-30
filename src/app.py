@@ -56,17 +56,15 @@ def pipeline(csv_file, model_name, cluster_min, top_n):
     return fig2d, fig3d, str(json_path), str(html_path)
 
 with gr.Blocks(title='Hyperbook Weaver 🕷️') as demo:
-    gr.Markdown("# Hyperbook Weaver 🕷️")
-
     with gr.Sidebar():
-        gr.Markdown('## Submit your CSV below')
+        gr.Markdown('## 📁 Data upload')
         csv_in = gr.File(label='CSV', file_types=['.csv'])
         gr.Markdown('⚠️ Make sure that your csv table has the columns "<b>title</b>" and "<b>content</b>"')
 
         run_btn = gr.Button('Process data', variant='primary')
         restart_btn = gr.Button("Restart")
 
-        gr.Markdown('### ⚙️ Parameters')
+        gr.Markdown('## ⚙️ Parameters')
         cluster_min = gr.Number(value=2, label='Minimum topic cluster size', interactive=True, minimum=2)
         top_n = gr.Number(value=10, label='Keywords to extract by paper', interactive=True, minimum=1)
         model_name = gr.Dropdown(choices=embedding_models, label='Embedding model', interactive=True)
@@ -74,6 +72,7 @@ with gr.Blocks(title='Hyperbook Weaver 🕷️') as demo:
         json_out = gr.File(label='Download JSON', file_types=['.json'], render=False)
         html_out = gr.File(label='Download HTML', file_types=['.html'], render=False)
 
+    gr.Markdown('# 🕷️ Hyperbook Weaver')
     plot_2d = gr.Plot(label='2D topic plot')
     plot_3d = gr.Plot(label='3D topic plot')
 
@@ -84,4 +83,3 @@ with gr.Blocks(title='Hyperbook Weaver 🕷️') as demo:
     )
 
 demo.launch()
-

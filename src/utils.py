@@ -1,5 +1,6 @@
 from keybert import KeyBERT
 from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.util import cos_sim
 from hdbscan import HDBSCAN
 from sklearn.preprocessing import normalize
 from collections import defaultdict
@@ -32,11 +33,24 @@ class TopicWeaver:
         most semantically relevant keywords
         """
         chunks = self.splitter.split_text(doc)
-        result = self.keybert.extract_keywords(chunks, top_n=self.top_n)
+        result = self.keybert.extract_keywords(docs=chunks, top_n=self.top_n, nr_candidates=self.top_n*2)
         
-        # Flatten, filter for strings and get the most common keywords
-        all_keywords = [item for item in chain.from_iterable(result) if isinstance(item, str)]
-        top_keywords = [pair[0] for pair in Counter(all_keywords).most_common(20)]
+        keywords = list(set([item for item in chain.from_iterable(result) if isinstance(item, str)]))
+        pooled = np.mean(self.model.encode(chunks), axis=0)
+
+        kw_similarities = {}
+
+        for kw, kw_emb in zip(keywords, self.model.encode(keywords)):
+            distance = cos_sim(pooled, kw_emb)
+            kw_similarities[kw] = float(distance)
+
+        kw_similarities = dict(sorted(
+            kw_similarities.items(), 
+            key=lambda item: item[-1], 
+            reverse=True
+        ))
+
+        top_keywords = list(kw_similarities.keys())[:10]
         
         return top_keywords
 
