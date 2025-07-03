@@ -1,34 +1,72 @@
 from keybert import KeyBERT
-from sentence_transformers import SentenceTransformer, util
-from sentence_transformers.util import cos_sim
+from sentence_transformers import util
 from hdbscan import HDBSCAN
-from sklearn.preprocessing import normalize
 from collections import defaultdict
 import umap.umap_ as umap
 import plotly.express as px
 import pandas as pd
 import networkx as nx
 import numpy as np
-from collections import Counter
-from itertools import chain
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import torch
 from jinja2 import Environment, FileSystemLoader
 import tempfile
 import os
+from litellm import embedding
+from keybert.backend import BaseEmbedder
 
+class StatelessEmbedder(BaseEmbedder):
+    def __init__(self, model_name, inference_mode):
+        super().__init__()
+        self.model_name = model_name
+        self.inference_mode = inference_mode
+
+    def embed(self, documents):
+        """
+        Generate embeddings from either Ollama, HuggingFace
+        or Azure OpenAI as a numpy array.
+        """
+        match self.inference_mode:
+            case 'ollama':
+                # Convert to JSON-serializable list — numpy arrays cannot be serialized!
+                documents = documents.tolist() if isinstance(documents, np.ndarray) else documents
+                response = embedding(
+                    model=f'ollama/{self.model_name}',
+                    input=documents,
+                    api_base='http://localhost:11434'
+                )
+            case 'huggingface':
+                response = embedding(
+                    model=f'huggingface/{self.model_name}',
+                    input=documents,
+                    api_key=os.environ['HF_TOKEN'],
+                    api_base=os.environ['HF_ENDPOINT']
+                )
+            case _:
+                response = embedding(
+                    model=f'azure/{self.model_name}',
+                    input=documents,
+                    api_base=os.environ['AZURE_OPENAI_ENDPOINT'],
+                    api_version=os.environ['AZURE_OPENAI_API_VERSION'],
+                    api_key=os.environ['AZURE_OPENAI_API_KEY']
+                )
+
+        embeddings = np.array([x['embedding'] for x in response.data])
+        return embeddings
+    
 class TopicWeaver:
-    def __init__(self, model_name, top_n, cluster_min):
+    def __init__(self, model_name, inference_mode, top_n, cluster_min, chunk_size):
         # Parameters
         self.top_n = top_n
 
         # Helper modules
-        self.model = SentenceTransformer(model_name)
+        self.model = StatelessEmbedder(model_name, inference_mode)
         self.keybert = KeyBERT(model=self.model)
+
         self.clusterer = HDBSCAN(min_cluster_size=cluster_min, metric='euclidean')
-        self.reducer_2d = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.1, metric='euclidean', random_state=42)
-        self.reducer_3d = umap.UMAP(n_components=3, n_neighbors=10, min_dist=0.1, metric='euclidean', random_state=42)
-        self.splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(model_name='gpt-4', chunk_size=1024, chunk_overlap=128)
+        self.reducer_2d = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.01, metric='euclidean', random_state=42)
+        self.reducer_3d = umap.UMAP(n_components=3, n_neighbors=10, min_dist=0.01, metric='euclidean', random_state=42)
+        self.splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(model_name='gpt-4', chunk_size=chunk_size, chunk_overlap=int(chunk_size*0.125))
 
     def get_keywords(self, doc: str) -> list[str]:
         """
@@ -39,12 +77,12 @@ class TopicWeaver:
         result = self.keybert.extract_keywords(docs=chunks, top_n=self.top_n, nr_candidates=self.top_n*2)
         
         keywords = self.extract_keybert(result)
-        pooled = np.mean(self.model.encode(chunks), axis=0)
+        pooled = np.mean(self.model.embed(chunks), axis=0)
 
         kw_similarities = {}
 
-        for kw, kw_emb in zip(keywords, self.model.encode(keywords)):
-            distance = cos_sim(pooled, kw_emb)
+        for kw, kw_emb in zip(keywords, self.model.embed(keywords)):
+            distance = util.cos_sim(pooled, kw_emb)
             kw_similarities[kw] = float(distance)
 
         kw_similarities = dict(sorted(
@@ -79,7 +117,7 @@ class TopicWeaver:
         Clusters keywords into semantic clusters
         and returns a map of their members
         """
-        embeddings = self.model.encode(keywords, normalize_embeddings=True)
+        embeddings = self.model.embed(keywords)
         clusters = self.clusterer.fit_predict(embeddings)
 
         cluster_map = defaultdict(list)
@@ -97,8 +135,8 @@ class TopicWeaver:
         Names a cluster of keywords by finding the keyword
         closest to the centroid of the cluster.
         """
-        embeddings = [keyword_embeddings[kw] for kw in keywords]
-        embeddings = torch.tensor(embeddings)
+        embeddings = np.array([keyword_embeddings[kw] for kw in keywords])
+        embeddings = torch.from_numpy(embeddings)
 
         # Calculate centroid and find the keyword closest to it
         centroid = util.normalize_embeddings(embeddings.mean(dim=0, keepdim=True))
@@ -238,19 +276,19 @@ class TopicWeaver:
         return file_path
     
     def assign_tags(self, titles, docs_keywords, kw2cluster, cluster_names):
-        article2topics = {}
-        for title, keywords in zip(titles, docs_keywords):
-            topics = set()
-            for kw in keywords:
-                if kw in kw2cluster:
-                    topic = cluster_names[kw2cluster[kw]]
-                    topics.add(topic)
-            
-            article2topics[title] = list(topics)
+        """
+        Creates a dataframe consisting of the articles, their keywords and
+        their topics. Useful for informing tag assignment.
+        """
+        article2topics = [
+            list(set(cluster_names[kw2cluster[kw]] for kw in keywords if kw in kw2cluster))
+            for keywords in docs_keywords
+        ]
         
+        # Index agnostic
         tags_df = pd.DataFrame({
             'title': titles,
-            'topics': list(article2topics.values()),
+            'topics': article2topics,
             'keywords': docs_keywords
         })
 
