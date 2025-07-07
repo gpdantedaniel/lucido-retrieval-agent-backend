@@ -14,6 +14,14 @@ import tempfile
 import os
 from litellm import embedding
 from keybert.backend import BaseEmbedder
+from langchain_openai import AzureChatOpenAI
+
+NAMING_PROMPT = (
+    'Suggest one scientific, technical keyword that best describes the context. '
+    'Avoid all formatting and output strictly in plaintext and lowercase.'
+    '\n\nContext: {context}'
+    '\n\nSuggested keyword: '
+)
 
 class StatelessEmbedder(BaseEmbedder):
     def __init__(self, model_name, inference_mode):
@@ -55,13 +63,14 @@ class StatelessEmbedder(BaseEmbedder):
         return embeddings
     
 class TopicWeaver:
-    def __init__(self, model_name, inference_mode, top_n, cluster_min, chunk_size):
+    def __init__(self, model_name, inference_mode, top_n, cluster_min, chunk_size, naming_method):
         # Parameters
         self.top_n = top_n
 
         # Helper modules
         self.model = StatelessEmbedder(model_name, inference_mode)
         self.keybert = KeyBERT(model=self.model)
+        self.naming_model = AzureChatOpenAI(azure_deployment='gpt-4o', temperature=0, api_version='2024-10-21') if naming_method else None
 
         self.clusterer = HDBSCAN(min_cluster_size=cluster_min, metric='euclidean')
         self.reducer_2d = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.01, metric='euclidean', random_state=42)
@@ -74,20 +83,29 @@ class TopicWeaver:
         most semantically relevant keywords
         """
         chunks = self.splitter.split_text(doc)
-        result = self.keybert.extract_keywords(docs=chunks, top_n=self.top_n, nr_candidates=self.top_n*2)
+        doc_embeddings, word_embeddings = self.keybert.extract_embeddings(chunks)
+        result = self.keybert.extract_keywords(
+            docs=chunks,
+            doc_embeddings=doc_embeddings,
+            word_embeddings=word_embeddings,
+            top_n=self.top_n, 
+            nr_candidates=self.top_n*2
+        )
         
-        keywords = self.extract_keybert(result)
-        pooled = np.mean(self.model.embed(chunks), axis=0)
+        keywords = list(set(self.extract_keybert(result)))  # Reduce to unique keywords
+        pooled = np.mean(doc_embeddings, axis=0)            # Pool the meanings of all the chunsk
+        
+        del doc_embeddings
+        del word_embeddings
 
-        kw_similarities = {}
-
-        for kw, kw_emb in zip(keywords, self.model.embed(keywords)):
-            distance = util.cos_sim(pooled, kw_emb)
-            kw_similarities[kw] = float(distance)
+        kw_similarities = {
+            kw: (emb, float(util.cos_sim(pooled, emb)))
+            for kw, emb in zip(keywords, self.model.embed(keywords))
+        }
 
         kw_similarities = dict(sorted(
             kw_similarities.items(), 
-            key=lambda item: item[-1], 
+            key=lambda item: item[-1][-1], 
             reverse=True
         ))
 
@@ -130,25 +148,40 @@ class TopicWeaver:
 
         return cluster_map, keyword_embeddings
 
-    def name_cluster(self, keywords: list[str], keyword_embeddings: dict) -> str:
+    def name_cluster(self, keywords: list[str], keyword_embeddings: dict, naming_method: str) -> str:
         """
         Names a cluster of keywords by finding the keyword
-        closest to the centroid of the cluster.
+        closest to the centroid of the cluster or by generating names via an LLM call.
         """
-        embeddings = np.array([keyword_embeddings[kw] for kw in keywords])
-        embeddings = torch.from_numpy(embeddings)
+        def by_centroid():
+            embeddings = np.array([keyword_embeddings[kw] for kw in keywords])
+            embeddings = torch.from_numpy(embeddings)
 
-        # Calculate centroid and find the keyword closest to it
-        centroid = util.normalize_embeddings(embeddings.mean(dim=0, keepdim=True))
-        name_index = int(util.cos_sim(centroid, embeddings)[0].argmax())
-
-        return keywords[name_index]
+            # Calculate centroid and find the keyword closest to it
+            centroid = util.normalize_embeddings(embeddings.mean(dim=0, keepdim=True))
+            name_index = int(util.cos_sim(centroid, embeddings)[0].argmax())
+            name = keywords[name_index]
+            return name
+        
+        def by_generation():
+            # Format the keywords into a prompt
+            prompt = NAMING_PROMPT.format(context=', '.join(keywords))
+            name = self.naming_model.invoke(prompt).content
+            return name
+        
+        try:
+            match naming_method:
+                case 'centroid': 
+                    return by_centroid()
+                case 'azure': 
+                    return by_generation()
+        except:
+            return by_centroid()
 
     def display_2d(self, cluster_map: dict, cluster_names: dict, keyword_embeddings: dict):
         """
         Displays clusters and their member keywords
         """
-
         flat_keywords, flat_ids = self.flatten_cluster_map(cluster_map)
         flat_names = [cluster_names[cluster_id] for cluster_id in flat_ids]
 
@@ -178,7 +211,6 @@ class TopicWeaver:
         """
         Displays clusters and their member keywords
         """
-
         flat_keywords, flat_ids = self.flatten_cluster_map(cluster_map)
         flat_names = [cluster_names[cluster_id] for cluster_id in flat_ids]
 
@@ -292,7 +324,13 @@ class TopicWeaver:
             'keywords': docs_keywords
         })
 
-        return tags_df
+        # Write the tags to a temporary file
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, 'topic_tags.csv')
+
+        tags_df.to_csv(file_path, index=False)
+
+        return tags_df, file_path
 
 if __name__ == '__main__':
     # Run the script
