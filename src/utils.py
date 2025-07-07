@@ -20,7 +20,7 @@ NAMING_PROMPT = (
     'Suggest one scientific, technical keyword that best describes the context. '
     'Avoid all formatting and output strictly in plaintext and lowercase.'
     '\n\nContext: {context}'
-    '\n\nSuggested keyword: '
+    '\n\nSuggested one keyword: '
 )
 
 class StatelessEmbedder(BaseEmbedder):
@@ -70,6 +70,7 @@ class TopicWeaver:
         # Helper modules
         self.model = StatelessEmbedder(model_name, inference_mode)
         self.keybert = KeyBERT(model=self.model)
+        self.count_vectorizer = CountVectorizer(max_df=0.80, min_df=0.0)
         self.naming_model = AzureChatOpenAI(azure_deployment='gpt-4o', temperature=0, api_version='2024-10-21') if naming_method else None
 
         self.clusterer = HDBSCAN(min_cluster_size=cluster_min, metric='euclidean')
@@ -83,7 +84,9 @@ class TopicWeaver:
         most semantically relevant keywords
         """
         chunks = self.splitter.split_text(doc)
-        doc_embeddings, word_embeddings = self.keybert.extract_embeddings(chunks)
+        doc_embeddings, word_embeddings = self.keybert.extract_embeddings(
+            docs=chunks
+        )
         result = self.keybert.extract_keywords(
             docs=chunks,
             doc_embeddings=doc_embeddings,
