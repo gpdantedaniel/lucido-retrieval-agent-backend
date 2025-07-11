@@ -12,13 +12,14 @@ tools = [retrieval_tool, cheatsheet_tool]
 
 # ========== Prompts and messages ==========
 
-COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
+COURSE_PROMPT = "You are Lucido, a virtual teaching assistant."
 
 HOME = f"""{COURSE_PROMPT}
-If the student questions should be course-related.
-If the conversation holds the answer to the student's question, use it.
-Use {retrieval_tool.name} to get information to the student's questions.
-Use {cheatsheet_tool.name} to generate a cheatsheet if requested."""
+Do not answer questions using your own knowledge from your training.
+Do not generate sources. These are provided by the system.
+Use {retrieval_tool.name} to retrieve information from your knowledge base.
+Use {cheatsheet_tool.name} to generate a cheatsheet if requested.
+"""
 
 DECIDE_RELEVANCE_PROMPT = f"""{COURSE_PROMPT}
 If the results provided by the tool have the answer to the user's query, just say 'satisfactory.'
@@ -49,11 +50,13 @@ def home(state: State):
     sys_message = SystemMessage(content=HOME)
     response = model.bind_tools(tools).invoke([sys_message] + state['messages'])
 
-    # If a response is generated after a tool call then cite sources
-    if len(response.tool_calls) == 0 and isinstance(state['messages'][-1], ToolMessage):
-        tool_message = state['messages'][-1]
-        sources = tool_message.artifact['sources']
-        response.content = f'{response.content}\n\nSources:\n\n{sources}'
+    last_message = state['messages'][-1]
+
+    if len(response.tool_calls) == 0:
+        # If a knowledge retrieval tool call was made
+        if isinstance(last_message, ToolMessage) and last_message.name == 'retrieval_tool':
+            sources = last_message.artifact['sources']
+            response.content = f'{response.content}\n\nSources:\n\n{sources}'
 
     return {'messages': [response]}
 
