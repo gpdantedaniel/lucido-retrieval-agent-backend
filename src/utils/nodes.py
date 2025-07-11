@@ -8,12 +8,13 @@ max_retrievals = 3
 
 # Configuration by https://huggingface.co/Qwen/Qwen3-8B
 model = ChatOllama(model='qwen3:8b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20)
+tools = [retrieval_tool, cheatsheet_tool]
 
 # ========== Prompts and messages ==========
 
 COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
 
-DECIDE_RETRIEVAL_PROMPT = f"""{COURSE_PROMPT}
+HOME = f"""{COURSE_PROMPT}
 If the student questions should be course-related.
 If the conversation holds the answer to the student's question, use it.
 Use {retrieval_tool.name} to get information to the student's questions.
@@ -38,17 +39,22 @@ def init_defaults(state: State):
     """
     return {"retrievals": 0}
 
-def retrieval_needed(state: State):
+def home(state: State):
     """
     Determines whether retrieval is needed.
     If the user's query can be answered, an answer is generated.
     Otherwise, the retrieval tool is called.
     """
     
-    sys_message = SystemMessage(content=DECIDE_RETRIEVAL_PROMPT)
-    tools = [retrieval_tool, cheatsheet_tool]
-    response = model.bind_tools(tools).invoke([sys_message] + state['messages'] )
-    
+    sys_message = SystemMessage(content=HOME)
+    response = model.bind_tools(tools).invoke([sys_message] + state['messages'])
+
+    # If a response is generated after a tool call then cite sources
+    if len(response.tool_calls) == 0 and isinstance(state['messages'][-1], ToolMessage):
+        tool_message = state['messages'][-1]
+        sources = tool_message.artifact['sources']
+        response.content = f'{response.content}\n\nSources:\n\n{sources}'
+
     return {'messages': [response]}
 
 def judge_results(state: State):

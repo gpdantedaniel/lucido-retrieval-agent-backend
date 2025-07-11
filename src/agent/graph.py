@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from src.utils.state import State
-from src.utils.nodes import retrieval_needed, judge_results, init_defaults
+from src.utils.nodes import home, init_defaults
 from src.utils.tools import retrieval_tool, cheatsheet_tool
 
 workflow = StateGraph(State)
@@ -31,7 +31,7 @@ def route_tool(state: State) -> str:
 
 # Add our nodes
 workflow.add_node('init', init_defaults)
-workflow.add_node('home', retrieval_needed)
+workflow.add_node('home', home)
 workflow.add_node('retrieval_tool', ToolNode([retrieval_tool]))
 workflow.add_node('cheatsheet_tool', ToolNode([cheatsheet_tool]))
 

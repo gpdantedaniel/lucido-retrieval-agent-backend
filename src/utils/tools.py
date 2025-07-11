@@ -101,7 +101,6 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId],
     docs = ensemble_retriever.invoke(query)
     summary = summarize_chain.invoke({'context': docs, 'query': query})
     sources = get_sources(docs)
-
     retrievals = state.get('retrievals', 0)
 
     return Command(update={
