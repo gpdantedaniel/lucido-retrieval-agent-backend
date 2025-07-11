@@ -19,6 +19,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.platypus import HRFlowable
 from uuid import uuid4
 from pathlib import Path
+import tempfile
 
 from src.utils.state import State
 
@@ -114,7 +115,7 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId],
         ]
     })
 
-@tool('generated_cheatsheet', parse_docstring=True)
+@tool('cheatsheet_tool', parse_docstring=True)
 def cheatsheet_tool(title: str, body: str) -> str:
     """
     Generates a cheatsheet locally.
@@ -125,7 +126,9 @@ def cheatsheet_tool(title: str, body: str) -> str:
         body: the body of the cheatsheet's content
     """
 
-    filename = '../outputs/' + str(uuid4()) + '.pdf'
+    # Create a temporary directory
+    filename = './cheatsheet.pdf'
+
     doc = SimpleDocTemplate(filename, pagesize=LETTER,
                             leftMargin=72, rightMargin=72,
                             topMargin=72, bottomMargin=72)
@@ -143,9 +146,9 @@ def cheatsheet_tool(title: str, body: str) -> str:
     for para in body.split("\n\n"):
         story.append(Paragraph(para, body_style))
         story.append(Spacer(1, 12))
-    
+
     doc.build(story)
 
-    url = 'file:///' + str(Path('../outputs/my_cheatsheet.pdf').absolute())
+    # Return the file URL
+    return filename
 
-    return url

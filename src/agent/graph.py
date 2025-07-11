@@ -15,17 +15,36 @@ def retrieval_finished(state: State) -> bool:
     last = state['messages'][-1]
     return not last.tool_calls
 
+def route_tool(state: State) -> str:
+    """
+    Returns the name of the tool to route
+    to depending on the last message
+    """
+    last = state['messages'][-1]
+
+    if hasattr(last, 'tool_calls') and len(last.tool_calls) > 0:
+        print('tool calls:', last.tool_calls)
+        tool_name = last.tool_calls[0]['name']
+        return tool_name
+    
+    return END
+
 # Add our nodes
 workflow.add_node('init', init_defaults)
 workflow.add_node('retrieval_needed', retrieval_needed)
 workflow.add_node('retrieval_tool', ToolNode([retrieval_tool]))
+workflow.add_node('cheatsheet_tool', ToolNode([cheatsheet_tool]))
+
 workflow.add_node(judge_results)
 
 # Add our edges
 workflow.add_edge(START, 'init')
 workflow.add_edge('init', 'retrieval_needed')
-workflow.add_conditional_edges('retrieval_needed', tools_condition, {'tools': 'retrieval_tool', END: END})
+workflow.add_conditional_edges('retrieval_needed', route_tool, {'retrieval_tool': 'retrieval_tool', 'cheatsheet_tool': 'cheatsheet_tool', END: END})
+
 workflow.add_edge('retrieval_tool', 'judge_results')
 workflow.add_conditional_edges('judge_results', retrieval_finished, {True: 'retrieval_needed', False: 'retrieval_tool'})
+
+workflow.add_edge('cheatsheet_tool', 'retrieval_needed')
 
 graph = workflow.compile()

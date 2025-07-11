@@ -44,7 +44,7 @@ def retrieval_needed(state: State):
     """
     
     sys_message = SystemMessage(content=DECIDE_RETRIEVAL_PROMPT)
-    tools = [retrieval_tool]
+    tools = [retrieval_tool, cheatsheet_tool]
     response = model.bind_tools(tools).invoke([sys_message] + state['messages'] )
     
     return {'messages': [response]}
