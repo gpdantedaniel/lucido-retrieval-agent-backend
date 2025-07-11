@@ -17,8 +17,8 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.platypus import HRFlowable
-from uuid import uuid4
-from pathlib import Path
+import markdown
+import os
 import tempfile
 
 from src.utils.state import State
@@ -126,28 +126,33 @@ def cheatsheet_tool(title: str, body: str) -> str:
     """
 
     # Create a temporary directory
-    filename = './cheatsheet.pdf'
+    temp_dir = tempfile.gettempdir()
+    filename = os.path.join(temp_dir, 'cheatsheet.pdf')
 
-    doc = SimpleDocTemplate(filename, pagesize=LETTER,
-                            leftMargin=72, rightMargin=72,
-                            topMargin=72, bottomMargin=72)
+    doc = SimpleDocTemplate(
+        filename, 
+        pagesize=LETTER,
+        leftMargin=72,
+        rightMargin=72,
+        topMargin=72,
+        bottomMargin=72
+    )
     
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Heading1'], alignment=0)
-    body_style = styles['BodyText']
     
     story = []
     story.append(Paragraph(title, title_style))
     story.append(Spacer(1, 12))
     story.append(HRFlowable(width="100%", thickness=1, color="black"))
     story.append(Spacer(1, 12))
-    
-    for para in body.split("\n\n"):
-        story.append(Paragraph(para, body_style))
+
+    for p in body.split('\n\n'):
+        story.append(Paragraph(markdown.markdown(p), styles['BodyText']))
         story.append(Spacer(1, 12))
 
     doc.build(story)
 
     # Return the file URL
-    return filename
+    return 'file:///' + filename
 
