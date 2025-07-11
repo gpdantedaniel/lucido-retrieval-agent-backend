@@ -42,7 +42,6 @@ workflow.add_edge(START, 'init')
 workflow.add_edge('init', 'retrieval_needed')
 workflow.add_conditional_edges('retrieval_needed', route_tool, {'retrieval_tool': 'retrieval_tool', 'cheatsheet_tool': 'cheatsheet_tool', END: END})
 
-workflow.add_edge('retrieval_tool', 'judge_results')
 workflow.add_conditional_edges('judge_results', retrieval_finished, {True: 'retrieval_needed', False: 'retrieval_tool'})
 
 workflow.add_edge('cheatsheet_tool', 'retrieval_needed')

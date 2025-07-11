@@ -10,7 +10,7 @@ from langgraph.types import Command
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import ToolMessage
-from langchain_openai import AzureChatOpenAI
+from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
 
 from reportlab.lib.pagesizes import LETTER
@@ -58,13 +58,13 @@ ensemble_retriever = EnsembleRetriever(
 ensemble_retriever = sparse_retriever   # A temporary fix for quick prototyping
 
 COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
-model = AzureChatOpenAI(azure_deployment='gpt-4o', api_version='2024-10-21')
+summarizer_model = ChatOllama(model='qwen3:8b', reasoning=False, temperature=0)
 
 SUMMARIZE_PROMPT = """Please summarize the following: {context}\n\nSummary:"""
 SOURCE_FORMAT = '{title}\n{authors}\n{url}'
 
 summarize_prompt = ChatPromptTemplate.from_template(SUMMARIZE_PROMPT)
-summarize_chain = create_stuff_documents_chain(model, summarize_prompt)
+summarize_chain = create_stuff_documents_chain(summarizer_model, summarize_prompt)
 
 SOURCE_FORMAT = '{title}\n{authors}\n{url}'
 

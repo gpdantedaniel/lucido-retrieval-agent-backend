@@ -1,11 +1,13 @@
-from langchain_openai import AzureChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, ToolMessage
 
 from src.utils.state import State
 from src.utils.tools import retrieval_tool, cheatsheet_tool
 
 max_retrievals = 3
-model = AzureChatOpenAI(azure_deployment='gpt-4o', api_version='2024-10-21')
+
+# Configuration by https://huggingface.co/Qwen/Qwen3-8B
+model = ChatOllama(model='qwen3:8b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20)
 
 # ========== Prompts and messages ==========
 
