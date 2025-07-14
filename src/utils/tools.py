@@ -23,6 +23,8 @@ import tempfile
 
 from src.utils.state import State
 
+# ========== Retrieval ==========
+
 dense_retriever = Chroma(
     collection_name='bien200', 
     embedding_function=OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0'), 
@@ -41,16 +43,18 @@ ensemble_retriever = EnsembleRetriever(
     weights=[0.5, 0.5]
 )
 
-COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
-summarizer_model = ChatOllama(model='qwen3:8b', reasoning=False, temperature=0)
+# ========== Prompts ==========
 
+COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
 SUMMARIZE_PROMPT = """Please summarize the following: {context}\n\nSummary:"""
 SOURCE_FORMAT = '{title}\n{authors}\n{url}'
 
-summarize_prompt = ChatPromptTemplate.from_template(SUMMARIZE_PROMPT)
-summarize_chain = create_stuff_documents_chain(summarizer_model, summarize_prompt)
+# ========== Utilities ==========
 
-SOURCE_FORMAT = '{title}\n{authors}\n{url}'
+summarize_chain = create_stuff_documents_chain(
+    llm=ChatOllama(model='qwen3:8b', reasoning=False, temperature=0), 
+    prompt=ChatPromptTemplate.from_template(SUMMARIZE_PROMPT)
+)
 
 def get_sources(docs) -> str:
     """
@@ -72,6 +76,8 @@ def get_sources(docs) -> str:
     sources = '\n\n'.join(sources)
 
     return sources
+
+# ========== Tools ==========
 
 @tool('retrieval_tool', parse_docstring=True)
 def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId], state: Annotated[State, InjectedState]) -> str:
