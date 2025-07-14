@@ -1,9 +1,9 @@
 from typing_extensions import Annotated
 from langchain_core.tools import tool
 from langchain_core.tools.base import InjectedToolCallId
+from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
 from langchain_core.tools import tool
@@ -13,7 +13,6 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
-from langchain_core.vectorstores import InMemoryVectorStore
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -24,28 +23,18 @@ import tempfile
 
 from src.utils.state import State
 
-# Chunk parameters
-chunk_size = 256
-chunk_overlap = 32
+dense_retriever = Chroma(
+    collection_name='bien200', 
+    embedding_function=OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0'), 
+    persist_directory='../../embeddings/chroma_db'
+).as_retriever()
 
-embedding_model = OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0')
-embeddings_path = f'./embeddings/hyperbook_embeddings_{chunk_size}_{chunk_overlap}'
-
-# Loading the vector store locally
-vectorstore = InMemoryVectorStore.load(path=embeddings_path, embedding=embedding_model)
-dense_retriever = vectorstore.as_retriever()
-
-docs = CSVLoader(
-    file_path='./data/raw/hyperbook.csv', 
+sparse_retriever = BM25Retriever.from_documents(CSVLoader(
+    file_path='./data/processed/bien200_chunks.csv', 
     content_columns=['content'], 
     metadata_columns=['url', 'title', 'authors'],
     encoding='utf-8'
-).load()
-
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-docs = text_splitter.split_documents(docs)
-
-sparse_retriever = BM25Retriever.from_documents(docs)
+).load())
 
 ensemble_retriever = EnsembleRetriever(
     retrievers=[dense_retriever, sparse_retriever],
