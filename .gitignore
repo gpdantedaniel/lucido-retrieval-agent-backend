@@ -169,6 +169,8 @@ uv.lock
 
 outputs/
 
-data/
+.data
+data
+.data/
 
 .vscode/
