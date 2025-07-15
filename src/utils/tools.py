@@ -13,25 +13,13 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
-
 import os
 import tempfile
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Frame,
-    PageTemplate,
-    BaseDocTemplate,
-    FrameBreak,
-    PageBreak,
-    KeepInFrame
-)
-
+from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate
 from typing import List, Dict
 from pydantic import BaseModel, Field
 
@@ -61,7 +49,7 @@ ensemble_retriever = EnsembleRetriever(
 
 COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
 SUMMARIZE_PROMPT = """Please summarize the following: {context}\n\nSummary:"""
-SOURCE_FORMAT = '{title}\n{authors}\n{url}'
+SOURCE_FORMAT = '{authors}\n"{title}"\n{url}'
 
 # ========== Functional Utilities ==========
 
@@ -90,7 +78,7 @@ def get_sources(docs) -> str:
     sources = '\n\n'.join(sources)
     return sources
 
-def cheatsheet_story(title, concepts, definitions, equations, examples):
+def cheatsheet_story(title, concepts, definitions, equations, examples, references):
     """
     Generates a ReportLab-styles story
     returned as a list of Reportlab elements
@@ -112,14 +100,19 @@ def cheatsheet_story(title, concepts, definitions, equations, examples):
         if concept in equations and equations[concept]:
             story.append(Paragraph("<b>Equations</b>", styles['Subheader']))
             for eq in equations[concept]:
-                story.append(Paragraph(f"• {eq}", styles['Bullet']))
+                story.append(Paragraph(eq, styles['Bullet']))
         
         # Examples
         if concept in examples and examples[concept]:
             story.append(Paragraph("<b>Examples</b>", styles['Subheader']))
             for ex in examples[concept]:
-                story.append(Paragraph(f"• {ex}", styles['Bullet']))
-    
+                story.append(Paragraph(ex, styles['Bullet']))
+
+    # Add references like any good scientist
+    story.append(Paragraph('<b>References</b>', styles['Concept']))
+    for ref in references:
+        story.append(Paragraph(ref, styles['Bullet']))
+            
     return story
 
 # ========== ReportLab Utilities ==========
@@ -129,7 +122,7 @@ styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(
     name='CheatsheetTitle',
     parent=styles['Heading1'],
-    fontSize=24,
+    fontSize=20,
 ))
 
 styles.add(ParagraphStyle(
@@ -184,7 +177,10 @@ two_column_template = PageTemplate(
 # ========== Tools & Input Schemae ==========
 
 @tool('retrieval_tool', parse_docstring=True)
-def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId], state: Annotated[State, InjectedState]) -> str:
+def retrieval_tool(
+    query: str, 
+    tool_call_id: Annotated[str, InjectedToolCallId]
+) -> str:
     """
     Retrieve information from the knowledge base.
     Updates the 'retrievals' counter in the state.
@@ -207,11 +203,12 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId],
     })
 
 class CheatsheetInputSchema(BaseModel):
-    title: str  = Field(description='The main title of the cheatsheet')
+    title: str = Field(description='The main title of the cheatsheet')
     concepts: List[str] = Field(description='An ordered list of all concepts included in the cheatsheet. This helps in organizing the output.')
     definitions: Dict[str, str] = Field(description='A mapping from each concept to its definition where applicable')
     equations: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
     examples: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
+    state: Annotated[State, InjectedState]
 
 @tool('cheatsheet_tool', args_schema=CheatsheetInputSchema)
 def cheatsheet_tool(
@@ -219,19 +216,21 @@ def cheatsheet_tool(
     concepts: List[str], 
     definitions: Dict[str, str], 
     equations: Dict[str, List[str]], 
-    examples: Dict[str, List[str]]
-    ) -> str:
+    examples: Dict[str, List[str]],
+    state: Annotated[State, InjectedState]
+) -> str:
     """
     Generates a cheatsheet. 
     Returns a URL for downloading.
     When using, please respect the accepted argument types.
     Keep concept names consistent across arguments.
+    And most importantly, be verbose!
     """
     # Create a temporary directory
     temp_dir = tempfile.gettempdir()
     filename = os.path.join(temp_dir, 'cheatsheet.pdf')
     
-    doc = SimpleDocTemplate(
+    doc = BaseDocTemplate(
         filename, 
         pagesize=letter,
         leftMargin=margin, 
@@ -243,8 +242,17 @@ def cheatsheet_tool(
     # Give the document two columns
     doc.addPageTemplates([two_column_template])
 
+    # Extract the potentially used references
+    retrieval_calls = filter(lambda m: isinstance(m, ToolMessage) and m.name == 'retrieval_tool', state['messages'])
+
+    print('retrieval_calls:', retrieval_calls)
+
+    references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
+
+    print('references:', references)
+
     # Build the PDF document
-    story = cheatsheet_story(title, concepts, definitions, equations, examples)
+    story = cheatsheet_story(title, concepts, definitions, equations, examples, references)
     doc.build(story)
 
     # Return file URL (in real usage, replace with actual download URL)

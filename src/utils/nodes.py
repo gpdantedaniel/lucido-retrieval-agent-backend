@@ -16,8 +16,10 @@ COURSE_PROMPT = "You are Lucido, a virtual teaching assistant."
 
 HOME = f"""{COURSE_PROMPT}
 Do not answer questions using your own knowledge.
-Use {retrieval_tool.name} to retrieve information from your knowledge base.
-Use {cheatsheet_tool.name} to generate a cheatsheet if requested."""
+If the user requests theoretical knowledge, retrieve the required information. 
+Use {retrieval_tool.name} to retrieve information.
+If the user requests a cheatsheet, retrieve all the needed theoretical knowledge first.
+Then use {cheatsheet_tool.name} to generate a cheatsheet."""
 
 # ========== Nodes ==========
 
