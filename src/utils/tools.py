@@ -13,13 +13,27 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
-from reportlab.lib.pagesizes import LETTER
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.platypus import HRFlowable
-import markdown
+
 import os
 import tempfile
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Frame,
+    PageTemplate,
+    BaseDocTemplate,
+    FrameBreak,
+    PageBreak,
+    KeepInFrame
+)
+
+from typing import List, Dict
+from pydantic import BaseModel, Field
 
 from src.utils.state import State
 
@@ -49,10 +63,10 @@ COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help st
 SUMMARIZE_PROMPT = """Please summarize the following: {context}\n\nSummary:"""
 SOURCE_FORMAT = '{title}\n{authors}\n{url}'
 
-# ========== Utilities ==========
+# ========== Functional Utilities ==========
 
 summarize_chain = create_stuff_documents_chain(
-    llm=ChatOllama(model='qwen3:8b', reasoning=False, temperature=0), 
+    llm=ChatOllama(model='qwen3:14b', reasoning=False, temperature=0.6, top_p=0.95, top_k=20), 
     prompt=ChatPromptTemplate.from_template(SUMMARIZE_PROMPT)
 )
 
@@ -74,10 +88,100 @@ def get_sources(docs) -> str:
 
     # Concatenate into a string
     sources = '\n\n'.join(sources)
-
     return sources
 
-# ========== Tools ==========
+def cheatsheet_story(title, concepts, definitions, equations, examples):
+    """
+    Generates a ReportLab-styles story
+    returned as a list of Reportlab elements
+    """
+    story = []  # Create story content
+    story.append(Paragraph(title, styles['CheatsheetTitle']))
+
+    # Add content for each concept
+    for concept in concepts:
+        # Concept header
+        story.append(Paragraph(concept, styles['Concept']))
+        
+        # Definition
+        if concept in definitions:
+            story.append(Paragraph("<b>Definition</b>", styles['Subheader']))
+            story.append(Paragraph(definitions[concept], styles['Body']))
+        
+        # Equations
+        if concept in equations and equations[concept]:
+            story.append(Paragraph("<b>Equations</b>", styles['Subheader']))
+            for eq in equations[concept]:
+                story.append(Paragraph(f"• {eq}", styles['Bullet']))
+        
+        # Examples
+        if concept in examples and examples[concept]:
+            story.append(Paragraph("<b>Examples</b>", styles['Subheader']))
+            for ex in examples[concept]:
+                story.append(Paragraph(f"• {ex}", styles['Bullet']))
+    
+    return story
+
+# ========== ReportLab Utilities ==========
+
+styles = getSampleStyleSheet()
+
+styles.add(ParagraphStyle(
+    name='CheatsheetTitle',
+    parent=styles['Heading1'],
+    fontSize=24,
+))
+
+styles.add(ParagraphStyle(
+    name='Concept',
+    parent=styles['Heading2'],
+    fontSize=14,
+    textColor=colors.darkblue,
+    spaceAfter=0.1*inch,
+    spaceBefore=0.3*inch
+))
+
+styles.add(ParagraphStyle(
+    name='Subheader',
+    fontSize=10,
+    textColor=colors.darkred,
+    spaceAfter=0.05*inch
+))
+
+styles.add(ParagraphStyle(
+    name='Body',
+    parent=styles['BodyText'],
+    fontSize=10,
+    spaceAfter=0.1*inch
+))
+
+# Column dimensions
+margin = 0.5 * inch
+gutter = 0.2 * inch
+col_width = (letter[0] - margin * 2 - gutter) / 2
+col_height = letter[1] - margin * 2
+
+two_column_template = PageTemplate(
+    id='TwoColumns', 
+    frames=[
+        Frame(
+            x1=margin,
+            y1=margin,
+            width=col_width,
+            height=col_height,
+            id='left'
+        ),
+        Frame(
+            x1= margin + col_width + gutter,
+            y1=margin,
+            width=col_width,
+            height=col_height,
+            id='right'
+        )
+    ]
+)
+
+# ========== Tools & Input Schemae ==========
 
 @tool('retrieval_tool', parse_docstring=True)
 def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId], state: Annotated[State, InjectedState]) -> str:
@@ -91,10 +195,8 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId],
     docs = ensemble_retriever.invoke(query)
     summary = summarize_chain.invoke({'context': docs, 'query': query})
     sources = get_sources(docs)
-    retrievals = state.get('retrievals', 0)
 
     return Command(update={
-        'retrievals': retrievals + 1,
         'messages': [
             ToolMessage(
                 content=summary, 
@@ -104,45 +206,46 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId],
         ]
     })
 
-@tool('cheatsheet_tool', parse_docstring=True)
-def cheatsheet_tool(title: str, body: str) -> str:
-    """
-    Generates a cheatsheet locally.
-    Returns a URL that that provides access for downloading.
+class CheatsheetInputSchema(BaseModel):
+    title: str  = Field(description='The main title of the cheatsheet')
+    concepts: List[str] = Field(description='An ordered list of all concepts included in the cheatsheet. This helps in organizing the output.')
+    definitions: Dict[str, str] = Field(description='A mapping from each concept to its definition where applicable')
+    equations: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
+    examples: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
 
-    Args:
-        title: the title of the cheatsheet
-        body: the body of the cheatsheet's content
+@tool('cheatsheet_tool', args_schema=CheatsheetInputSchema)
+def cheatsheet_tool(
+    title: str, 
+    concepts: List[str], 
+    definitions: Dict[str, str], 
+    equations: Dict[str, List[str]], 
+    examples: Dict[str, List[str]]
+    ) -> str:
     """
-
+    Generates a cheatsheet. 
+    Returns a URL for downloading.
+    When using, please respect the accepted argument types.
+    Keep concept names consistent across arguments.
+    """
     # Create a temporary directory
     temp_dir = tempfile.gettempdir()
     filename = os.path.join(temp_dir, 'cheatsheet.pdf')
-
+    
     doc = SimpleDocTemplate(
         filename, 
-        pagesize=LETTER,
-        leftMargin=72,
-        rightMargin=72,
-        topMargin=72,
-        bottomMargin=72
+        pagesize=letter,
+        leftMargin=margin, 
+        rightMargin=margin,
+        topMargin=margin, 
+        bottomMargin=margin
     )
     
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', parent=styles['Heading1'], alignment=0)
-    
-    story = []
-    story.append(Paragraph(title, title_style))
-    story.append(Spacer(1, 12))
-    story.append(HRFlowable(width="100%", thickness=1, color="black"))
-    story.append(Spacer(1, 12))
+    # Give the document two columns
+    doc.addPageTemplates([two_column_template])
 
-    for p in body.split('\n\n'):
-        story.append(Paragraph(markdown.markdown(p), styles['BodyText']))
-        story.append(Spacer(1, 12))
-
+    # Build the PDF document
+    story = cheatsheet_story(title, concepts, definitions, equations, examples)
     doc.build(story)
 
-    # Return the file URL
-    return 'file:///' + filename
-
+    # Return file URL (in real usage, replace with actual download URL)
+    return f"file://{filename}"
