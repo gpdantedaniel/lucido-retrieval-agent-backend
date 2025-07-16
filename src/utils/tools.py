@@ -13,8 +13,6 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
-import os
-import tempfile
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -22,6 +20,12 @@ from reportlab.lib.units import inch
 from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate
 from typing import List, Dict
 from pydantic import BaseModel, Field
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+import os
+import tempfile
+import datetime
+from io import BytesIO
+from uuid import uuid4
 
 from src.utils.state import State
 
@@ -115,6 +119,40 @@ def cheatsheet_story(title, concepts, definitions, equations, examples, referenc
             
     return story
 
+container_name = 'outputs'
+sas_expiry_time = 30 # in minutes
+
+def upload_output(buffer) -> str:
+    """
+    Uploads a file in buffer as a PDF to Azure
+    Blob Storage and returns a SAS url for reading.
+    """
+    # Generate a name for the blob
+    blob_name=str(uuid4()) + '.pdf'
+
+    # Establish connection to storage accoutn
+    blob_service_client = BlobServiceClient.from_connection_string(os.environ['AZURE_BLOB_CONNECTION_STRING'])
+    blob_client = blob_service_client.get_blob_client(container_name, blob_name)
+
+    blob_client.upload_blob(buffer, overwrite=True)
+
+    # The URL can be accessed for 30 minutes
+    start_time = datetime.datetime.now(datetime.timezone.utc)
+    expiry_time = start_time + datetime.timedelta(minutes=sas_expiry_time)
+
+    sas_token = generate_blob_sas(
+        account_name=blob_client.account_name,
+        container_name=blob_client.container_name,
+        blob_name=blob_client.blob_name,
+        account_key=os.environ['AZURE_STORAGE_ACCOUNT_KEY'],
+        permission=BlobSasPermissions(read=True),
+        start=start_time,
+        expiry=expiry_time
+    )
+
+    sas_url = f'{blob_client.url}?{sas_token}'
+    return sas_url
+
 # ========== ReportLab Utilities ==========
 
 styles = getSampleStyleSheet()
@@ -138,7 +176,7 @@ styles.add(ParagraphStyle(
     name='Subheader',
     fontSize=10,
     textColor=colors.darkred,
-    spaceAfter=0.05*inch
+    spaceAfter=0.1*inch
 ))
 
 styles.add(ParagraphStyle(
@@ -226,34 +264,28 @@ def cheatsheet_tool(
     Keep concept names consistent across arguments.
     And most importantly, be verbose!
     """
-    # Create a temporary directory
-    temp_dir = tempfile.gettempdir()
-    filename = os.path.join(temp_dir, 'cheatsheet.pdf')
-    
+
+    # Create a buffer to receive doc
+    buffer = BytesIO()
+
     doc = BaseDocTemplate(
-        filename, 
-        pagesize=letter,
-        leftMargin=margin, 
-        rightMargin=margin,
-        topMargin=margin, 
-        bottomMargin=margin
+        buffer, pagesize=letter,
+        leftMargin=margin, rightMargin=margin,
+        topMargin=margin, bottomMargin=margin
     )
     
     # Give the document two columns
     doc.addPageTemplates([two_column_template])
 
-    # Extract the potentially used references
+    # Extract potentially used references
     retrieval_calls = filter(lambda m: isinstance(m, ToolMessage) and m.name == 'retrieval_tool', state['messages'])
-
-    print('retrieval_calls:', retrieval_calls)
-
     references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
-
-    print('references:', references)
 
     # Build the PDF document
     story = cheatsheet_story(title, concepts, definitions, equations, examples, references)
     doc.build(story)
 
-    # Return file URL (in real usage, replace with actual download URL)
-    return f"file://{filename}"
+    buffer.seek(0) # Reset once finished building
+    download_url = upload_output(buffer) # Upload and get SAS download URL
+    
+    return download_url
