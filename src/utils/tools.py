@@ -215,10 +215,7 @@ two_column_template = PageTemplate(
 # ========== Tools & Input Schemae ==========
 
 @tool('retrieval_tool', parse_docstring=True)
-def retrieval_tool(
-    query: str, 
-    tool_call_id: Annotated[str, InjectedToolCallId]
-) -> str:
+def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId]) -> str:
     """
     Retrieve information from the knowledge base.
     Updates the 'retrievals' counter in the state.
@@ -247,6 +244,7 @@ class CheatsheetInputSchema(BaseModel):
     equations: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
     examples: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
     state: Annotated[State, InjectedState]
+    tool_call_id: Annotated[str, InjectedToolCallId]
 
 @tool('cheatsheet_tool', args_schema=CheatsheetInputSchema)
 def cheatsheet_tool(
@@ -255,7 +253,8 @@ def cheatsheet_tool(
     definitions: Dict[str, str], 
     equations: Dict[str, List[str]], 
     examples: Dict[str, List[str]],
-    state: Annotated[State, InjectedState]
+    state: Annotated[State, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId]
 ) -> str:
     """
     Generates a cheatsheet. 
@@ -287,5 +286,13 @@ def cheatsheet_tool(
 
     buffer.seek(0) # Reset once finished building
     download_url = upload_output(buffer) # Upload and get SAS download URL
-    
-    return download_url
+
+    return Command(update={
+        'messages': [
+            ToolMessage(
+                content='Cheatsheet successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                artifact={'download_url': download_url}, 
+                tool_call_id=tool_call_id
+            )
+        ]
+    })

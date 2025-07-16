@@ -44,8 +44,12 @@ def home(state: State):
 
     if len(response.tool_calls) == 0:
         # If a knowledge retrieval tool call was made
-        if isinstance(last_message, ToolMessage) and last_message.name == 'retrieval_tool':
-            sources = last_message.artifact['sources']
-            response.content = f'{response.content}\n\nSources:\n\n{sources}'
+        if isinstance(last_message, ToolMessage):
+            if last_message.name == 'retrieval_tool':
+                sources = last_message.artifact['sources']
+                response.content = f'{response.content}\n\nSources:\n\n{sources}'
+            if last_message.name == 'cheatsheet_tool':
+                download_url = last_message.artifact['download_url']
+                response.content = f'{response.content}\n\nDownload Cheatsheet (PDF): {download_url}'
 
     return {'messages': [response]}
