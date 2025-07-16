@@ -17,7 +17,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate
+from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate, PageBreak
 from typing import List, Dict
 from pydantic import BaseModel, Field
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
@@ -26,6 +26,7 @@ import tempfile
 import datetime
 from io import BytesIO
 from uuid import uuid4
+import random
 
 from src.utils.state import State
 
@@ -82,7 +83,7 @@ def get_sources(docs) -> str:
     sources = '\n\n'.join(sources)
     return sources
 
-def cheatsheet_story(title, concepts, definitions, equations, examples, references):
+def build_cheatsheet_story(title, concepts, definitions, equations, examples, references):
     """
     Generates a ReportLab-styles story
     returned as a list of Reportlab elements
@@ -212,7 +213,26 @@ two_column_template = PageTemplate(
     ]
 )
 
-# ========== Tools & Input Schemae ==========
+# ========== Input Schemas ==========
+
+class CheatsheetInputSchema(BaseModel):
+    title: str = Field(description='The main title of the cheatsheet')
+    concepts: List[str] = Field(description='An ordered list of all concepts included in the cheatsheet. This helps in organizing the output.')
+    definitions: Dict[str, str] = Field(description='A mapping from each concept to its definition where applicable')
+    equations: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
+    examples: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
+    state: Annotated[State, InjectedState]
+    tool_call_id: Annotated[str, InjectedToolCallId]
+
+class QuizInputSchema(BaseModel):
+    title: str = Field(description='The main title of the quiz')
+    questions: List[str] = Field(description='An ordered list of all the questions.')
+    distractor_answers: List[List[str]] = Field(description='An ordered list of lists of distractors answers for each question.')
+    true_answers: List[str] = Field(description='An ordered list of the true answers for each question.')
+    state: Annotated[State, InjectedState]
+    tool_call_id: Annotated[str, InjectedToolCallId]
+
+# ========== Tools ==========
 
 @tool('retrieval_tool', parse_docstring=True)
 def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId]) -> str:
@@ -237,15 +257,6 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId])
         ]
     })
 
-class CheatsheetInputSchema(BaseModel):
-    title: str = Field(description='The main title of the cheatsheet')
-    concepts: List[str] = Field(description='An ordered list of all concepts included in the cheatsheet. This helps in organizing the output.')
-    definitions: Dict[str, str] = Field(description='A mapping from each concept to its definition where applicable')
-    equations: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
-    examples: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
-    state: Annotated[State, InjectedState]
-    tool_call_id: Annotated[str, InjectedToolCallId]
-
 @tool('cheatsheet_tool', args_schema=CheatsheetInputSchema)
 def cheatsheet_tool(
     title: str, 
@@ -255,10 +266,10 @@ def cheatsheet_tool(
     examples: Dict[str, List[str]],
     state: Annotated[State, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId]
-) -> str:
+):
     """
-    Generates a cheatsheet. 
-    Returns a URL for downloading.
+    Generates a cheatsheet.
+    Returns a success or failure message.
     When using, please respect the accepted argument types.
     Keep concept names consistent across arguments.
     And most importantly, be verbose!
@@ -281,7 +292,7 @@ def cheatsheet_tool(
     references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
 
     # Build the PDF document
-    story = cheatsheet_story(title, concepts, definitions, equations, examples, references)
+    story = build_cheatsheet_story(title, concepts, definitions, equations, examples, references)
     doc.build(story)
 
     buffer.seek(0) # Reset once finished building
@@ -296,3 +307,94 @@ def cheatsheet_tool(
             )
         ]
     })
+
+@tool('quiz_tool', args_schema=QuizInputSchema)
+def quiz_tool(
+    title: str,
+    questions: List[str],
+    distractor_answers: List[List[str]],
+    true_answers: List[List[str]],
+    state: Annotated[State, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId]
+):
+    """
+    Generates a multiple-choice quiz.
+    Returns a success or failure message.
+    When using, please respect the accepted argument types.
+    Keep question ordering consistent across generated arguments.
+    """
+
+    buffer = BytesIO()
+
+    doc = BaseDocTemplate(
+        buffer, pagesize=letter,
+        leftMargin=margin, rightMargin=margin,
+        topMargin=margin, bottomMargin=margin
+    )
+
+    # Give the document two columns
+    doc.addPageTemplates([two_column_template])
+
+    # Extract potentially used references
+    retrieval_calls = filter(lambda m: isinstance(m, ToolMessage) and m.name == 'retrieval_tool', state['messages'])
+    references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
+
+    story = build_quiz_story(title, questions, distractor_answers, true_answers, references)
+    doc.build(story)
+
+    buffer.seek(0) # Reset once finished building
+    download_url = upload_output(buffer) # Upload and get SAS download URL
+    
+    return Command(update={
+        'messages': [
+            ToolMessage(
+                content='Quiz successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                artifact={'download_url': download_url}, 
+                tool_call_id=tool_call_id
+            )
+        ]
+    })
+
+def build_quiz_story(title, questions, mapped_distractors, true_answers, references):
+    """
+    Generates a ReportLab story
+    return as a list of ReportLab elements
+    """
+    # Store answers at the back 
+    back_answers = []
+    story = []
+    
+    story.append(Paragraph(title, styles['CheatsheetTitle']))
+
+    if not (len(questions) == len(mapped_distractors) and len(mapped_distractors) == len(true_answers)):
+        raise Exception('questions, distractors and true answers must all be of the same length')
+
+    story.append(Paragraph('<b>Questions</b>', styles['Concept']))
+
+    for question, distractors, true_answer in zip(questions, mapped_distractors, true_answers):
+        shuffled = distractors + [true_answer]  # Not shuffled yet
+        random.shuffle(shuffled)                # Now it is shuffled !
+        shuffled = [f'{index + 1}. {answer}' for index, answer in enumerate(shuffled)]
+        back_answers.append([a for a in shuffled if true_answer in a][0])
+
+        story.append(Paragraph(question, styles['Body']))
+        
+        for ans in shuffled:
+            story.append(Paragraph(ans, styles['Bullet']))
+
+    # Send answers to the back (no peeking!)
+    story.append(PageBreak())
+
+    story.append(Paragraph('<b>Answers</b>', styles['Concept']))
+
+    for question, ans in zip(questions, back_answers):
+        story.append(Paragraph(question, styles['Body']))
+        story.append(Paragraph(ans, styles['Bullet']))
+
+    # Add references like any good scientist
+    story.append(Paragraph('<b>References</b>', styles['Concept']))
+
+    for ref in references:
+        story.append(Paragraph(ref, styles['Bullet']))
+
+    return story
