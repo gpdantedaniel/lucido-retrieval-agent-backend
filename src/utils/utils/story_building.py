@@ -2,43 +2,40 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate, PageBreak
+from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate, SimpleDocTemplate, PageBreak
 import random
 
 # ========== Layout ==========
-
-# Column dimensions
-margin = 0.5 * inch
-gutter = 0.2 * inch
-col_width = (letter[0] - margin * 2 - gutter) / 2
-col_height = letter[1] - margin * 2
-
-two_column_template = PageTemplate(
-    id='TwoColumns', 
-    frames=[
-        Frame(
-            x1=margin,
-            y1=margin,
-            width=col_width,
-            height=col_height,
-            id='left'
-        ),
-        Frame(
-            x1= margin + col_width + gutter,
-            y1=margin,
-            width=col_width,
-            height=col_height,
-            id='right'
-        )
-    ]
-)
-
 
 def generate_doc(filename_or_buffer):
     """
     Generates a document object with a
     two-column layout.
     """
+    # Column dimensions
+    margin = 0.5 * inch
+    gutter = 0.2 * inch
+    col_width = (letter[0] - margin * 2 - gutter) / 2
+    col_height = letter[1] - margin * 2
+
+    left_column = Frame(
+        x1=margin,
+        y1=margin,
+        width=col_width,
+        height=col_height,
+        id='left'
+    )
+
+    right_column = Frame(
+        x1= margin + col_width + gutter,
+        y1=margin,
+        width=col_width,
+        height=col_height,
+        id='right'
+    )
+
+    two_column_template = PageTemplate(id='TwoColumns', frames=[left_column, right_column])
+
     doc = BaseDocTemplate(
         filename=filename_or_buffer, 
         pagesize=letter,
@@ -50,7 +47,27 @@ def generate_doc(filename_or_buffer):
 
     # Give the document two columns
     doc.addPageTemplates([two_column_template])
-    
+    return doc
+
+def generate_flashcard_doc(filename_or_buffer):
+    """
+    Generates a 5x3 inch flashcard
+    ReportLab document.
+    """
+    # Flashcard dimensions
+    margin = 0.2 * inch
+    page_width = 5 * inch
+    page_height = 3 * inch
+
+    doc = SimpleDocTemplate(
+        filename=filename_or_buffer,
+        pagesize=(page_width, page_height),
+        leftMargin=margin,
+        rightMargin=margin,
+        topMargin=margin,
+        bottomMargin=margin
+    )
+
     return doc
 
 # ========== Styles ==========
@@ -84,6 +101,14 @@ styles.add(ParagraphStyle(
     parent=styles['BodyText'],
     fontSize=10,
     spaceAfter=0.1*inch
+))
+
+styles.add(ParagraphStyle(
+    name='FlashCardText',
+    parent=styles['BodyText'],
+    fontSize=14,
+    leading=18,
+    alignment=1
 ))
 
 # ========== Story Building Functions ==========
@@ -167,5 +192,20 @@ def build_quiz_story(title, questions, mapped_distractors, true_answers, referen
 
     for ref in references:
         story.append(Paragraph(ref, styles['Bullet']))
+
+    return story
+
+def build_flashcards_story(questions, answers):
+    """
+    Generates PDF flashcards using
+    ReportLab as question-answer pairs
+    """
+    story = []
+
+    for q, a in zip(questions, answers):
+        story.append(Paragraph(q, styles['FlashCardText']))
+        story.append(PageBreak())
+        story.append(Paragraph(a, styles['FlashCardText']))
+        story.append(PageBreak())
 
     return story

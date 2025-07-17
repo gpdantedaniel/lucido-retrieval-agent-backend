@@ -31,7 +31,7 @@ from uuid import uuid4
 import random
 
 from src.utils.state import State
-from src.utils.utils.story_building import generate_doc, build_cheatsheet_story, build_quiz_story
+from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
 
 # ========== Retrieval ==========
 
@@ -139,6 +139,12 @@ class QuizInputSchema(BaseModel):
     state: Annotated[State, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
+class FlashcardsInputSchema(BaseModel):
+    questions: List[str] = Field(description='An ordered list of all the questions.')
+    answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
+    state: Annotated[State, InjectedState]
+    tool_call_id: Annotated[str, InjectedToolCallId]
+
 # ========== Tools ==========
 
 @tool('retrieval_tool', parse_docstring=True)
@@ -239,6 +245,43 @@ def quiz_tool(
         'messages': [
             ToolMessage(
                 content='Quiz successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                artifact={'download_url': download_url}, 
+                tool_call_id=tool_call_id
+            )
+        ]
+    })
+
+@tool('flashcards_tool', args_schema=FlashcardsInputSchema)
+def flashcards_tool(
+    questions: List[str],
+    answers: List[str],
+    state: Annotated[State, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId]
+):
+    """
+    Generates flashcards by accepting aligned questions and answers.
+    Returns a success or failure message.
+    When using, please respect the accepted argument types.
+    Keep alignment consistent across questions and answers.
+    """
+    # Generate document
+    buffer = BytesIO()
+    doc = generate_flashcard_doc(buffer)
+
+    # Extract potentially used references
+    retrieval_calls = filter(lambda m: isinstance(m, ToolMessage) and m.name == 'retrieval_tool', state['messages'])
+    references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
+
+    story = build_flashcards_story(questions, answers)
+    doc.build(story)
+
+    buffer.seek(0) # Reset once finished building
+    download_url = upload_output(buffer) # Upload and get SAS download URL
+
+    return Command(update={
+        'messages': [
+            ToolMessage(
+                content='Flashcards successfully generated. Download link has been shared with user. Do not generate any download link.', 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
