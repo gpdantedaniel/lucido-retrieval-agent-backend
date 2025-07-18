@@ -6,9 +6,8 @@ from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcar
 
 # Configuration by https://huggingface.co/Qwen/Qwen3-8B
 
-model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20)
+model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20, num_predict=1024)
 tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool]
-max_retrievals = 3
 
 # ========== Prompts and messages ==========
 
