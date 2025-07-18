@@ -19,7 +19,11 @@ Do not answer questions using your own knowledge.
 If the user requests theoretical knowledge, retrieve the required information. 
 Use {retrieval_tool.name} to retrieve information.
 If the user requests a cheatsheet, retrieve all the needed theoretical knowledge first.
-Then use {cheatsheet_tool.name} to generate a cheatsheet."""
+Then use {cheatsheet_tool.name} to generate a cheatsheet.
+If the user requests a deck of flashcards, retrieve all the needed theoretical knowledge first.
+Then, if they haven't specified the kind, ask whether they wish to have Anki flashcards or PDF flashcards.
+Then use {flashcards_tool.name} to generate a deck of flashcards.
+"""
 
 # ========== Nodes ==========
 

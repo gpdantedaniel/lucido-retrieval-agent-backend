@@ -49,7 +49,7 @@ def generate_doc(filename_or_buffer):
     doc.addPageTemplates([two_column_template])
     return doc
 
-def generate_flashcard_doc(filename_or_buffer):
+def generate_flashcard_doc(filename_or_buffer, title):
     """
     Generates a 5x3 inch flashcard
     ReportLab document.
@@ -61,6 +61,7 @@ def generate_flashcard_doc(filename_or_buffer):
 
     doc = SimpleDocTemplate(
         filename=filename_or_buffer,
+        title=title,
         pagesize=(page_width, page_height),
         leftMargin=margin,
         rightMargin=margin,

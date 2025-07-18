@@ -29,6 +29,7 @@ import datetime
 from io import BytesIO
 from uuid import uuid4
 import random
+import genanki
 
 from src.utils.state import State
 from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
@@ -89,13 +90,13 @@ def get_sources(docs) -> str:
 container_name = 'outputs'
 sas_expiry_time = 30 # in minutes
 
-def upload_output(buffer) -> str:
+def upload_output(buffer, file_extension) -> str:
     """
-    Uploads a file in buffer as a PDF to Azure
+    Uploads a file in buffer to Azure
     Blob Storage and returns a SAS url for reading.
     """
     # Generate a name for the blob
-    blob_name=str(uuid4()) + '.pdf'
+    blob_name=str(uuid4()) + f'.{file_extension}'
 
     # Establish connection to storage accoutn
     blob_service_client = BlobServiceClient.from_connection_string(os.environ['AZURE_BLOB_CONNECTION_STRING'])
@@ -140,11 +141,13 @@ class QuizInputSchema(BaseModel):
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 class FlashcardsInputSchema(BaseModel):
-    questions: List[str] = Field(description='An ordered list of all the questions.')
-    answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
     state: Annotated[State, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
-
+    title: str = Field(description='The title of the flashcards deck')
+    questions: List[str] = Field(description='An ordered list of all the questions.')
+    answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
+    generate_anki: bool = Field(description='Whether an Anki deck should be generated. Defaults to False to generate a PDF deck.')
+    
 # ========== Tools ==========
 
 @tool('retrieval_tool', parse_docstring=True)
@@ -200,7 +203,7 @@ def cheatsheet_tool(
     doc.build(story)
 
     buffer.seek(0) # Reset once finished building
-    download_url = upload_output(buffer) # Upload and get SAS download URL
+    download_url = upload_output(buffer, 'pdf') # Upload and get SAS download URL
 
     return Command(update={
         'messages': [
@@ -239,7 +242,7 @@ def quiz_tool(
     doc.build(story)
 
     buffer.seek(0) # Reset once finished building
-    download_url = upload_output(buffer) # Upload and get SAS download URL
+    download_url = upload_output(buffer, 'pdf') # Upload and get SAS download URL
     
     return Command(update={
         'messages': [
@@ -251,32 +254,70 @@ def quiz_tool(
         ]
     })
 
+def generate_model_deck(title):
+    """
+    Generates Anki model and deck
+    and returns them with unique int IDs
+    """
+    assign_id = lambda: random.randint(1, 1_000_000_000)
+    model = genanki.Model(
+        model_id=assign_id(),
+        name='Default',
+        fields = [
+            {'name': 'Question'},
+            {'name': 'Answer'}
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{Question}}',
+                'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}'
+            }
+        ]
+    )
+
+    deck = genanki.Deck(deck_id=assign_id(), name=title)
+    return model, deck
+
+
 @tool('flashcards_tool', args_schema=FlashcardsInputSchema)
 def flashcards_tool(
+    state: Annotated[State, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    title: str,
     questions: List[str],
     answers: List[str],
-    state: Annotated[State, InjectedState],
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    generate_anki: bool = False
 ):
     """
-    Generates flashcards by accepting aligned questions and answers.
+    Generates PDF or Anki flashcards by accepting aligned questions and answers.
     Returns a success or failure message.
     When using, please respect the accepted argument types.
     Keep alignment consistent across questions and answers.
     """
     # Generate document
     buffer = BytesIO()
-    doc = generate_flashcard_doc(buffer)
 
     # Extract potentially used references
     retrieval_calls = filter(lambda m: isinstance(m, ToolMessage) and m.name == 'retrieval_tool', state['messages'])
     references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
+    
+    if generate_anki:
+        model, deck = generate_model_deck(title)
+        for q, a in zip(questions, answers):
+            note = genanki.Note(model=model, fields=[q, a])
+            deck.add_note(note)
+        genanki.Package(deck).write_to_file(buffer)
 
-    story = build_flashcards_story(questions, answers)
-    doc.build(story)
+        buffer.seek(0) # Reset once finished building
+        download_url = upload_output(buffer, 'apkg')
+    else:
+        doc = generate_flashcard_doc(buffer, title)
+        story = build_flashcards_story(questions, answers)
+        doc.build(story)
 
-    buffer.seek(0) # Reset once finished building
-    download_url = upload_output(buffer) # Upload and get SAS download URL
+        buffer.seek(0) # Reset once finished building
+        download_url = upload_output(buffer, 'pdf')
 
     return Command(update={
         'messages': [
