@@ -2,12 +2,12 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, ToolMessage
 
 from src.utils.state import State
-from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool
+from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool
 
 # Configuration by https://huggingface.co/Qwen/Qwen3-8B
 
-model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20, num_predict=1024)
-tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool]
+model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20, num_predict=2048)
+tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool]
 
 # ========== Prompts and messages ==========
 
@@ -22,6 +22,8 @@ Then use {cheatsheet_tool.name} to generate a cheatsheet.
 If the user requests a deck of flashcards, retrieve all the needed theoretical knowledge first.
 Then, if they haven't specified the kind, ask whether they wish to have Anki flashcards or PDF flashcards.
 Then use {flashcards_tool.name} to generate a deck of flashcards.
+If the user requests a podcast, look up any necessary information first before generating.
+Then user {podcast_tool.name} to generate a single-speaker podcast with free prose."
 """
 
 # ========== Nodes ==========
@@ -39,7 +41,6 @@ def home(state: State):
     If the user's query can be answered, an answer is generated.
     Otherwise, the retrieval tool is called.
     """
-    
     sys_message = SystemMessage(content=HOME)
     response = model.bind_tools(tools).invoke([sys_message] + state['messages'])
 
@@ -51,7 +52,7 @@ def home(state: State):
             if last_message.name == 'retrieval_tool':
                 sources = last_message.artifact['sources']
                 response.content = f'{response.content}\n\nSources:\n\n{sources}'
-            if last_message.name in ['cheatsheet_tool', 'quiz_tool', 'flashcards_tool']:
+            elif last_message.name in ['cheatsheet_tool', 'quiz_tool', 'flashcards_tool', 'podcast_tool']:
                 download_url = last_message.artifact['download_url']
                 response.content = f'{response.content}\n\nDownload (PDF): {download_url}'
 

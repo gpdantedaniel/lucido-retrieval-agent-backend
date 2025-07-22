@@ -30,6 +30,9 @@ from io import BytesIO
 from uuid import uuid4
 import random
 import genanki
+from kokoro import KPipeline
+import numpy as np
+import soundfile as sf
 
 from src.utils.state import State
 from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
@@ -121,6 +124,31 @@ def upload_output(buffer, file_extension) -> str:
     sas_url = f'{blob_client.url}?{sas_token}'
     return sas_url
 
+def generate_model_deck(title):
+    """
+    Generates Anki model and deck
+    and returns them with unique int IDs
+    """
+    assign_id = lambda: random.randint(1, 1_000_000_000)
+    model = genanki.Model(
+        model_id=assign_id(),
+        name='Default',
+        fields = [
+            {'name': 'Question'},
+            {'name': 'Answer'}
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{Question}}',
+                'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}'
+            }
+        ]
+    )
+
+    deck = genanki.Deck(deck_id=assign_id(), name=title)
+    return model, deck
+
 # ========== Input Schemas ==========
 
 class CheatsheetInputSchema(BaseModel):
@@ -147,6 +175,11 @@ class FlashcardsInputSchema(BaseModel):
     questions: List[str] = Field(description='An ordered list of all the questions.')
     answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
     generate_anki: bool = Field(description='Whether an Anki deck should be generated. Defaults to False to generate a PDF deck.')
+
+class PodcastInputSchema(BaseModel):
+    state: Annotated[State, InjectedState]
+    tool_call_id: Annotated[str, InjectedToolCallId]
+    content: str = Field(description='The free prose content of the podcast.')
     
 # ========== Tools ==========
 
@@ -254,32 +287,6 @@ def quiz_tool(
         ]
     })
 
-def generate_model_deck(title):
-    """
-    Generates Anki model and deck
-    and returns them with unique int IDs
-    """
-    assign_id = lambda: random.randint(1, 1_000_000_000)
-    model = genanki.Model(
-        model_id=assign_id(),
-        name='Default',
-        fields = [
-            {'name': 'Question'},
-            {'name': 'Answer'}
-        ],
-        templates=[
-            {
-                'name': 'Card 1',
-                'qfmt': '{{Question}}',
-                'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}'
-            }
-        ]
-    )
-
-    deck = genanki.Deck(deck_id=assign_id(), name=title)
-    return model, deck
-
-
 @tool('flashcards_tool', args_schema=FlashcardsInputSchema)
 def flashcards_tool(
     state: Annotated[State, InjectedState],
@@ -328,3 +335,35 @@ def flashcards_tool(
             )
         ]
     })
+
+@tool('podcast_tool', args_schema=PodcastInputSchema)
+def podcast_tool(
+    state: Annotated[State, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    content: str,
+):
+    """
+    Generates a podcast as an audio MP3 file.
+    Returns a success or failure message.
+    When using, please generate the podcast script in free prose.
+    """
+    pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
+    generator = pipeline(content, voice='af_heart', split_pattern=None)
+    audio = np.concatenate([segment[-1] for segment in generator])
+
+    buffer = BytesIO()
+    sf.write(buffer, audio, 24_000, format='WAV', subtype='PCM_24')
+    buffer.seek(0)
+
+    download_url = upload_output(buffer, 'wav')
+
+    return Command(update={
+        'messages': [
+            ToolMessage(
+                content='Podcast successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                artifact={'download_url': download_url}, 
+                tool_call_id=tool_call_id
+            )
+        ]
+    })
+
