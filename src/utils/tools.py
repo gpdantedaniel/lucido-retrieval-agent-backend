@@ -8,23 +8,12 @@ from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
 from langchain_core.tools import tool
 from langgraph.types import Command
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import ToolMessage
-from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
-
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate, PageBreak
-
 from typing import List, Dict
 from pydantic import BaseModel, Field
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 import os
-import tempfile
 import datetime
 from io import BytesIO
 from uuid import uuid4
@@ -33,7 +22,7 @@ import genanki
 from kokoro import KPipeline
 import numpy as np
 import soundfile as sf
-
+import ollama
 from src.utils.state import State
 from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
 
@@ -65,10 +54,21 @@ SOURCE_FORMAT = '{authors}\n"{title}"\n{url}'
 
 # ========== Functional Utilities ==========
 
-summarize_chain = create_stuff_documents_chain(
-    llm=ChatOllama(model='qwen3:14b', reasoning=False, temperature=0.6, top_p=0.95, top_k=20), 
-    prompt=ChatPromptTemplate.from_template(SUMMARIZE_PROMPT)
-)
+def summarize_docs(docs):
+    """
+    Summarizes the context of a list
+    of documents using an LLM call
+    """
+    context = '\n'.join(doc.page_content for doc in docs)
+    prompt = SUMMARIZE_PROMPT.format(context=context)
+    response = ollama.chat(
+        model='qwen3:14b',
+        messages=[{"role": "user", "content": prompt}],
+        options={"temperature": 0.6, "top_p": 0.95, "top_k": 20},
+        think=False
+    )
+
+    return response['message']['content']
 
 def get_sources(docs) -> str:
     """
@@ -193,7 +193,7 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId])
         query: the search query for retrieval-augmented generation
     """
     docs = ensemble_retriever.invoke(query)
-    summary = summarize_chain.invoke({'context': docs, 'query': query})
+    summary = summarize_docs(docs)
     sources = get_sources(docs)
 
     return Command(update={
