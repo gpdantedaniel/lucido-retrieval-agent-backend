@@ -1,5 +1,5 @@
 from langchain_ollama import ChatOllama
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 
 from src.utils.state import State
 from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool
@@ -49,10 +49,7 @@ def home(state: State):
     if len(response.tool_calls) == 0:
         # If a knowledge retrieval tool call was made
         if isinstance(last_message, ToolMessage):
-            if last_message.name == 'retrieval_tool':
-                sources = last_message.artifact['sources']
-                response.content = f'{response.content}\n\nSources:\n\n{sources}'
-            elif last_message.name in ['cheatsheet_tool', 'quiz_tool', 'flashcards_tool', 'podcast_tool']:
+            if last_message.name in ['cheatsheet_tool', 'quiz_tool', 'flashcards_tool', 'podcast_tool']:
                 download_url = last_message.artifact['download_url']
                 response.content = f'{response.content}\n\nDownload (PDF): {download_url}'
 
