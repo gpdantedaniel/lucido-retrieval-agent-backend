@@ -28,13 +28,6 @@ Then user {podcast_tool.name} to generate a single-speaker podcast with free pro
 
 # ========== Nodes ==========
 
-def init_defaults(state: State):
-    """
-    Initializes default values. This is a temporary
-    fix that eases workflows with LangGraph Studio
-    """
-    return {"retrievals": 0}
-
 def home(state: State):
     """
     Determines whether retrieval is needed.
