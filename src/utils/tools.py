@@ -176,7 +176,7 @@ class FlashcardsInputSchema(BaseModel):
     title: str = Field(description='The title of the flashcards deck')
     questions: List[str] = Field(description='An ordered list of all the questions.')
     answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
-    generate_anki: bool = Field(description='Whether an Anki deck should be generated. Defaults to False to generate a PDF deck.')
+    generate_anki: bool = Field(description='Whether an Anki deck should be generated.')
     state: Annotated[State, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
@@ -187,17 +187,14 @@ class PodcastInputSchema(BaseModel):
     
 # ========== Tools ==========
 
-@tool('retrieval_tool', parse_docstring=True)
+@tool('retrieval_tool')
 def retrieval_tool(
     query: str, 
     tool_call_id: Annotated[str, InjectedToolCallId]
 ) -> str:
     """
-    Retrieve information from the knowledge base.
-    Updates the 'retrievals' counter in the state.
-
-    Args:
-        query: the search query for retrieval-augmented generation
+    Retrieves information from the knowledge base.
+    Use if theoretical knowledge is required for a task.
     """
     docs = ensemble_retriever.invoke(query)
     summary = summarize_docs(docs)
@@ -225,10 +222,7 @@ def cheatsheet_tool(
 ):
     """
     Generates a cheatsheet.
-    Returns a success or failure message.
-    When using, please respect the accepted argument types.
-    Keep concept names consistent across arguments.
-    And most importantly, be verbose!
+    Use if the user requests one.
     """
     # Generate document
     buffer = BytesIO()
@@ -266,9 +260,7 @@ def quiz_tool(
 ):
     """
     Generates a multiple-choice quiz.
-    Returns a success or failure message.
-    When using, please respect the accepted argument types.
-    Keep question ordering consistent across generated arguments.
+    Use if the user requests one.
     """
     # Generate document
     buffer = BytesIO()
@@ -304,10 +296,8 @@ def flashcards_tool(
     tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
-    Generates PDF or Anki flashcards by accepting aligned questions and answers.
-    Returns a success or failure message.
-    When using, please respect the accepted argument types.
-    Keep alignment consistent across questions and answers.
+    Generates PDF or Anki Flashcards.
+    Use if the user requests some after specifying the type (PDF or Anki).
     """
     # Generate document
     buffer = BytesIO()
@@ -350,9 +340,8 @@ def podcast_tool(
     tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
-    Generates a podcast as an audio MP3 file.
-    Returns a success or failure message.
-    When using, please generate the podcast script in free prose.
+    Generates a podcast.
+    Use if the user requests one.
     """
     pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
     generator = pipeline(content, voice='af_heart', split_pattern=None)
@@ -373,4 +362,3 @@ def podcast_tool(
             )
         ]
     })
-

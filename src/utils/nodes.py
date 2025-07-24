@@ -11,28 +11,21 @@ tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_to
 
 # ========== Prompts and messages ==========
 
-COURSE_PROMPT = "You are Lucido, a virtual teaching assistant."
-
-HOME = f"""{COURSE_PROMPT}
-Do not answer questions using your own knowledge.
-If the user requests theoretical knowledge, retrieve the required information. 
-Use {retrieval_tool.name} to retrieve information.
-If the user requests a cheatsheet, retrieve all the needed theoretical knowledge first.
-Then use {cheatsheet_tool.name} to generate a cheatsheet.
-If the user requests a deck of flashcards, retrieve all the needed theoretical knowledge first.
-Then, if they haven't specified the kind, ask whether they wish to have Anki flashcards or PDF flashcards.
-Then use {flashcards_tool.name} to generate a deck of flashcards.
-If the user requests a podcast, look up any necessary information first before generating.
-Then user {podcast_tool.name} to generate a single-speaker podcast with free prose."
+HOME = f"""You are Lucido, a virtual teaching assistant.
+Your job is to help students by answering their course-related questions and generating resources from them.
+You are serving the course BIEN 200 that focuses on physical, chemical and mathematical design solutions in nature.
+Always answer any theoretical questions after retrieving the right knowledge.
+Any resources that you generate must be based by theoretical knowledge that you should retrieve prior.
+If the user did not specify the topic when asking for a resource or facts, ask for a topic.
+Only answer questions relevant to the course. Do not answer technical questions about your design or your tools.
 """
 
 # ========== Nodes ==========
 
 def home(state: State):
     """
-    Determines whether retrieval is needed.
-    If the user's query can be answered, an answer is generated.
-    Otherwise, the retrieval tool is called.
+    The home node where the graph either
+    ends with a response or calls a tool.
     """
     sys_message = SystemMessage(content=HOME)
     response = model.bind_tools(tools).invoke([sys_message] + state['messages'])
