@@ -44,13 +44,4 @@ def home(state: State):
     sys_message = SystemMessage(content=HOME)
     response = model.bind_tools(tools).invoke([sys_message] + state['messages'])
 
-    last_message = state['messages'][-1]
-
-    if len(response.tool_calls) == 0:
-        # If a knowledge retrieval tool call was made
-        if isinstance(last_message, ToolMessage):
-            if last_message.name in ['cheatsheet_tool', 'quiz_tool', 'flashcards_tool', 'podcast_tool']:
-                download_url = last_message.artifact['download_url']
-                response.content = f'{response.content}\n\nDownload (PDF): {download_url}'
-
     return {'messages': [response]}

@@ -123,32 +123,31 @@ def build_cheatsheet_story(title, concepts, definitions, equations, examples, re
     story = []  # Create story content
     story.append(Paragraph(title, styles['CheatsheetTitle']))
 
-    # Add content for each concept
-    for concept in concepts:
-        # Concept header
-        story.append(Paragraph(concept, styles['Concept']))
+    for concept, c_definition, c_equations, c_examples in zip (concepts, definitions, equations, examples):
+        story.append(Paragraph(concept, styles['Concept'])) # Concept header
         
-        # Definition
-        if concept in definitions:
+        # Add the definition
+        if c_definition:
             story.append(Paragraph("<b>Definition</b>", styles['Subheader']))
-            story.append(Paragraph(definitions[concept], styles['Body']))
+            story.append(Paragraph(c_definition, styles['Body']))
         
-        # Equations
-        if concept in equations and equations[concept]:
+        # Add every equation if there are any
+        if len(c_equations) > 0:
             story.append(Paragraph("<b>Equations</b>", styles['Subheader']))
-            for eq in equations[concept]:
+            for eq in c_equations:
                 story.append(Paragraph(eq, styles['Bullet']))
         
-        # Examples
-        if concept in examples and examples[concept]:
+        # Add examples
+        if len(c_examples) > 0:
             story.append(Paragraph("<b>Examples</b>", styles['Subheader']))
-            for ex in examples[concept]:
+            for ex in c_examples:
                 story.append(Paragraph(ex, styles['Bullet']))
 
     # Add references like any good scientist
-    story.append(Paragraph('<b>References</b>', styles['Concept']))
-    for ref in references:
-        story.append(Paragraph(ref, styles['Bullet']))
+    if len(references) > 0:
+        story.append(Paragraph('<b>References</b>', styles['Concept']))
+        for ref in references:
+            story.append(Paragraph(ref, styles['Bullet']))
             
     return story
 

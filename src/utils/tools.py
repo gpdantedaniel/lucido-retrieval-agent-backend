@@ -154,9 +154,9 @@ def generate_model_deck(title):
 class CheatsheetInputSchema(BaseModel):
     title: str = Field(description='The main title of the cheatsheet')
     concepts: List[str] = Field(description='An ordered list of all concepts included in the cheatsheet. This helps in organizing the output.')
-    definitions: Dict[str, str] = Field(description='A mapping from each concept to its definition where applicable')
-    equations: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
-    examples: Dict[str, List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
+    definitions: List[str] = Field(description='A mapping from each concept to its definition where applicable')
+    equations: List[List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
+    examples: List[List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
     state: Annotated[State, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
@@ -169,22 +169,25 @@ class QuizInputSchema(BaseModel):
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 class FlashcardsInputSchema(BaseModel):
-    state: Annotated[State, InjectedState]
-    tool_call_id: Annotated[str, InjectedToolCallId]
     title: str = Field(description='The title of the flashcards deck')
     questions: List[str] = Field(description='An ordered list of all the questions.')
     answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
     generate_anki: bool = Field(description='Whether an Anki deck should be generated. Defaults to False to generate a PDF deck.')
-
-class PodcastInputSchema(BaseModel):
     state: Annotated[State, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
+
+class PodcastInputSchema(BaseModel):
     content: str = Field(description='The free prose content of the podcast.')
+    state: Annotated[State, InjectedState]
+    tool_call_id: Annotated[str, InjectedToolCallId]
     
 # ========== Tools ==========
 
 @tool('retrieval_tool', parse_docstring=True)
-def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId]) -> str:
+def retrieval_tool(
+    query: str, 
+    tool_call_id: Annotated[str, InjectedToolCallId]
+) -> str:
     """
     Retrieve information from the knowledge base.
     Updates the 'retrievals' counter in the state.
@@ -210,9 +213,9 @@ def retrieval_tool(query: str, tool_call_id: Annotated[str, InjectedToolCallId])
 def cheatsheet_tool(
     title: str, 
     concepts: List[str], 
-    definitions: Dict[str, str], 
-    equations: Dict[str, List[str]], 
-    examples: Dict[str, List[str]],
+    definitions: List[str], 
+    equations: List[List[str]], 
+    examples: List[List[str]],
     state: Annotated[State, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId]
 ):
@@ -255,7 +258,7 @@ def quiz_tool(
     distractor_answers: List[List[str]],
     true_answers: List[List[str]],
     state: Annotated[State, InjectedState],
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
     Generates a multiple-choice quiz.
@@ -289,12 +292,12 @@ def quiz_tool(
 
 @tool('flashcards_tool', args_schema=FlashcardsInputSchema)
 def flashcards_tool(
-    state: Annotated[State, InjectedState],
-    tool_call_id: Annotated[str, InjectedToolCallId],
     title: str,
     questions: List[str],
     answers: List[str],
-    generate_anki: bool = False
+    generate_anki: bool,
+    state: Annotated[State, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
     Generates PDF or Anki flashcards by accepting aligned questions and answers.
@@ -338,9 +341,9 @@ def flashcards_tool(
 
 @tool('podcast_tool', args_schema=PodcastInputSchema)
 def podcast_tool(
+    content: str,
     state: Annotated[State, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
-    content: str,
 ):
     """
     Generates a podcast as an audio MP3 file.
