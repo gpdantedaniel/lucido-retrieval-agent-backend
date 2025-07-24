@@ -32,24 +32,28 @@ dense_retriever = Chroma(
     collection_name='bien200', 
     embedding_function=OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0'), 
     persist_directory='../../embeddings/chroma_db'
-).as_retriever()
+).as_retriever(search_kwargs={'k': 4})
 
-sparse_retriever = BM25Retriever.from_documents(CSVLoader(
-    file_path='./data/processed/bien200_chunks.csv', 
-    content_columns=['content'], 
-    metadata_columns=['url', 'title', 'authors'],
-    encoding='utf-8'
-).load())
+sparse_retriever = BM25Retriever.from_documents(
+    documents=CSVLoader(
+        file_path='./data/processed/bien200_chunks.csv', 
+        content_columns=['content'], 
+        metadata_columns=['url', 'title', 'authors'],
+        encoding='utf-8',
+    ).load(),
+    k=4
+)
 
 ensemble_retriever = EnsembleRetriever(
     retrievers=[dense_retriever, sparse_retriever],
     weights=[0.5, 0.5]
 )
 
-# ========== Prompts ==========
+# ========== Prompts and Templates ==========
 
 COURSE_PROMPT = "You are a virtual teaching assistant and your job is to help students by answering relevant, theoretical questions."
 SUMMARIZE_PROMPT = """Please summarize the following: {context}\n\nSummary:"""
+RETRIEVAL_FORMAT = 'title: {title}\ncontent: {content}'
 SOURCE_FORMAT = '{authors}\n"{title}"\n{url}'
 
 # ========== Functional Utilities ==========
@@ -59,7 +63,7 @@ def summarize_docs(docs):
     Summarizes the context of a list
     of documents using an LLM call
     """
-    context = '\n'.join(doc.page_content for doc in docs)
+    context = '\n'.join(RETRIEVAL_FORMAT.format(title=doc.metadata['title'], content=doc.page_content) for doc in docs)
     prompt = SUMMARIZE_PROMPT.format(context=context)
     response = ollama.chat(
         model='qwen3:14b',
