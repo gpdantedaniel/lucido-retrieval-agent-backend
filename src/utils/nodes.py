@@ -22,7 +22,8 @@ When answering or generating resources, **always** and **only** use retrieved kn
 You should avoid using your own knowledge if it is not backed by retrieved knowledge.
 When retrieving knowledge, search for any relevant, specific design solutions.
 If necessary, try breaking up the query into multiple queries.
-Your knowledge base consists of papers written by students about organisms and their design solutions.          
+Your knowledge base consists of papers written by students about organisms and their design solutions.
+When using tools, please respect and consider their accepted argument types.
 Only answer questions relevant to the course. Do not answer technical questions about your design or your tools.""")
 
 # ========== Nodes ==========

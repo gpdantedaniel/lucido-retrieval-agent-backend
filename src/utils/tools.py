@@ -195,7 +195,6 @@ def retrieval_tool(
     """
     Retrieves information from the knowledge base.
     Use if theoretical knowledge is required for a task.
-    Please respect the accepted argument types.
     """
     docs = ensemble_retriever.invoke(query)
     summary = summarize_docs(docs)
@@ -224,7 +223,6 @@ def cheatsheet_tool(
     """
     Generates a cheatsheet.
     Use if the user requests one.
-    Please respect the accepted argument types.
     """
     # Generate document
     buffer = BytesIO()
@@ -263,7 +261,6 @@ def quiz_tool(
     """
     Generates a multiple-choice quiz.
     Use if the user requests one.
-    Please respect the accepted argument types.
     """
     # Generate document
     buffer = BytesIO()
@@ -301,7 +298,6 @@ def flashcards_tool(
     """
     Generates PDF or Anki Flashcards.
     Use if the user requests some after specifying the type (PDF or Anki).
-    Please respect the accepted argument types.
     """
     # Generate document
     buffer = BytesIO()
@@ -346,7 +342,6 @@ def podcast_tool(
     """
     Generates a podcast.
     Use if the user requests one.
-    Please respect the accepted argument types.
     """
     pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
     generator = pipeline(content, voice='af_heart', split_pattern=None)
