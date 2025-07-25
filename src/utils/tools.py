@@ -342,6 +342,7 @@ def podcast_tool(
     """
     Generates a podcast.
     Use if the user requests one.
+    The content should be plain text free prose with absolutely no formatting whatsoever.
     """
     pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
     generator = pipeline(content, voice='af_heart', split_pattern=None)
