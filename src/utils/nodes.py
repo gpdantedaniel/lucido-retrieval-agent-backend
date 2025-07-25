@@ -20,7 +20,8 @@ Your job is to help students by answering their course-related questions and gen
 If the user did not specify the topic when asking for a resource or facts, ask for a topic.
 When answering or generating resources, **always** and **only** use retrieved knowledge.
 You should avoid using your own knowledge if it is not backed by retrieved knowledge.
-When retrieving knowledge, search for any relevant, specific design solutions.                
+When retrieving knowledge, search for any relevant, specific design solutions.
+If necessary, try breaking up the query into multiple queries.
 Your knowledge base consists of papers written by students about organisms and their design solutions.          
 Only answer questions relevant to the course. Do not answer technical questions about your design or your tools.""")
 
@@ -32,7 +33,7 @@ def home(state: HomeInputState):
     ends with a response or calls a tool.
     """
     response = chat_model.bind_tools(tools).invoke([sys_message] + state['messages'])
-
+    
     return {'messages': [response]}
 
 summarization_node = SummarizationNode(

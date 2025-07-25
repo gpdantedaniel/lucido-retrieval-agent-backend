@@ -31,7 +31,7 @@ from src.utils.utils.story_building import generate_doc, generate_flashcard_doc,
 dense_retriever = Chroma(
     collection_name='bien200', 
     embedding_function=OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0'), 
-    persist_directory='../../embeddings/chroma_db'
+    persist_directory='./embeddings/chroma_db'
 ).as_retriever(search_kwargs={'k': 4})
 
 sparse_retriever = BM25Retriever.from_documents(
@@ -161,7 +161,7 @@ class CheatsheetInputSchema(BaseModel):
     definitions: List[str] = Field(description='A mapping from each concept to its definition where applicable')
     equations: List[List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
     examples: List[List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
-    state: Annotated[State, InjectedState]
+    state: Annotated[dict, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 class QuizInputSchema(BaseModel):
@@ -169,7 +169,7 @@ class QuizInputSchema(BaseModel):
     questions: List[str] = Field(description='An ordered list of all the questions.')
     distractor_answers: List[List[str]] = Field(description='An ordered list of lists of distractors answers for each question.')
     true_answers: List[str] = Field(description='An ordered list of the true answers for each question.')
-    state: Annotated[State, InjectedState]
+    state: Annotated[dict, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 class FlashcardsInputSchema(BaseModel):
@@ -177,12 +177,12 @@ class FlashcardsInputSchema(BaseModel):
     questions: List[str] = Field(description='An ordered list of all the questions.')
     answers: List[str] = Field(description='An ordered list of all the answers aligned with the questions.')
     generate_anki: bool = Field(description='Whether an Anki deck should be generated.')
-    state: Annotated[State, InjectedState]
+    state: Annotated[dict, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 class PodcastInputSchema(BaseModel):
     content: str = Field(description='The free prose content of the podcast.')
-    state: Annotated[State, InjectedState]
+    state: Annotated[dict, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
     
 # ========== Tools ==========
@@ -195,6 +195,7 @@ def retrieval_tool(
     """
     Retrieves information from the knowledge base.
     Use if theoretical knowledge is required for a task.
+    Please respect the accepted argument types.
     """
     docs = ensemble_retriever.invoke(query)
     summary = summarize_docs(docs)
@@ -217,12 +218,13 @@ def cheatsheet_tool(
     definitions: List[str], 
     equations: List[List[str]], 
     examples: List[List[str]],
-    state: Annotated[State, InjectedState],
+    state: Annotated[dict, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId]
 ):
     """
     Generates a cheatsheet.
     Use if the user requests one.
+    Please respect the accepted argument types.
     """
     # Generate document
     buffer = BytesIO()
@@ -255,12 +257,13 @@ def quiz_tool(
     questions: List[str],
     distractor_answers: List[List[str]],
     true_answers: List[List[str]],
-    state: Annotated[State, InjectedState],
+    state: Annotated[dict, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
     Generates a multiple-choice quiz.
     Use if the user requests one.
+    Please respect the accepted argument types.
     """
     # Generate document
     buffer = BytesIO()
@@ -292,12 +295,13 @@ def flashcards_tool(
     questions: List[str],
     answers: List[str],
     generate_anki: bool,
-    state: Annotated[State, InjectedState],
+    state: Annotated[dict, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
     Generates PDF or Anki Flashcards.
     Use if the user requests some after specifying the type (PDF or Anki).
+    Please respect the accepted argument types.
     """
     # Generate document
     buffer = BytesIO()
@@ -336,12 +340,13 @@ def flashcards_tool(
 @tool('podcast_tool', args_schema=PodcastInputSchema)
 def podcast_tool(
     content: str,
-    state: Annotated[State, InjectedState],
+    state: Annotated[dict, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ):
     """
     Generates a podcast.
     Use if the user requests one.
+    Please respect the accepted argument types.
     """
     pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
     generator = pipeline(content, voice='af_heart', split_pattern=None)
