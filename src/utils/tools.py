@@ -1,16 +1,11 @@
 from typing_extensions import Annotated
 from langchain_core.tools import tool
 from langchain_core.tools.base import InjectedToolCallId
-from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
 from langchain_core.tools import tool
 from langgraph.types import Command
 from langchain_core.messages import ToolMessage
 from langgraph.prebuilt import InjectedState
-from typing import List, Dict
+from typing import List
 from pydantic import BaseModel, Field
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 import os
@@ -23,31 +18,8 @@ from kokoro import KPipeline
 import numpy as np
 import soundfile as sf
 import ollama
-from src.utils.state import State
 from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
-
-# ========== Retrieval ==========
-
-dense_retriever = Chroma(
-    collection_name='bien200', 
-    embedding_function=OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0'), 
-    persist_directory='./embeddings/chroma_db'
-).as_retriever(search_kwargs={'k': 4})
-
-sparse_retriever = BM25Retriever.from_documents(
-    documents=CSVLoader(
-        file_path='./data/processed/bien200_chunks.csv', 
-        content_columns=['content'], 
-        metadata_columns=['url', 'title', 'authors'],
-        encoding='utf-8',
-    ).load(),
-    k=4
-)
-
-ensemble_retriever = EnsembleRetriever(
-    retrievers=[dense_retriever, sparse_retriever],
-    weights=[0.5, 0.5]
-)
+from src.utils.utils.retrieval import ensemble_retriever
 
 # ========== Prompts and Templates ==========
 
