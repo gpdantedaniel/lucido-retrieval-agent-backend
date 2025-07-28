@@ -1,14 +1,22 @@
+import os
 from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage
 from langmem.short_term import SummarizationNode
 from langchain_core.messages.utils import count_tokens_approximately
 from src.utils.state import HomeInputState
 from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool
+from langchain_openai import AzureChatOpenAI
 
-# Configuration by https://huggingface.co/Qwen/Qwen3-8B
+# Configuration recommended by https://huggingface.co/Qwen/Qwen3-8B
+# chat_model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20, num_predict=2048)
+# summarizer_model = ChatOllama(model='qwen3:14b', reasoning=False, temperature=0.6, top_p=0.92, top_k=20, num_predict=2048)
 
-chat_model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20, num_predict=2048)
-summarizer_model = ChatOllama(model='qwen3:14b', reasoning=False, temperature=0.6, top_p=0.92, top_k=20, num_predict=2048)
+chat_model = summarizer_model = AzureChatOpenAI(
+    azure_deployment='gpt-4o-mini', 
+    api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
+    azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),
+    openai_api_key=os.getenv('AZURE_OPENAI_API_KEY')
+)
 
 tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool]
 

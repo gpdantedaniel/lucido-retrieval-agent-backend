@@ -17,7 +17,8 @@ import genanki
 from kokoro import KPipeline
 import numpy as np
 import soundfile as sf
-import ollama
+from openai import AzureOpenAI
+
 from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
 from src.utils.utils.retrieval import ensemble_retriever
 
@@ -30,6 +31,12 @@ SOURCE_FORMAT = '{authors}\n"{title}"\n{url}'
 
 # ========== Functional Utilities ==========
 
+summarization_client = client = AzureOpenAI(
+    api_version=os.environ['AZURE_OPENAI_API_VERSION'],
+    azure_endpoint=os.environ['AZURE_OPENAI_ENDPOINT'],
+    api_key=os.environ['AZURE_OPENAI_API_KEY']
+)
+
 def summarize_docs(docs):
     """
     Summarizes the context of a list
@@ -37,14 +44,16 @@ def summarize_docs(docs):
     """
     context = '\n'.join(RETRIEVAL_FORMAT.format(title=doc.metadata['title'], content=doc.page_content) for doc in docs)
     prompt = SUMMARIZE_PROMPT.format(context=context)
-    response = ollama.chat(
-        model='qwen3:14b',
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.6, "top_p": 0.95, "top_k": 20},
-        think=False
+    response = client.chat.completions.create(
+        messages=[{'role': 'user', 'content': prompt}],
+        max_tokens=1024,
+        temperature=1.0,
+        top_p=1.0,
+        model='gpt-4o-mini'
     )
 
-    return response['message']['content']
+    summary = response.choices[0].message.content
+    return summary
 
 def get_sources(docs) -> str:
     """
