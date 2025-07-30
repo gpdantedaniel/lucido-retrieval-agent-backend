@@ -1,16 +1,45 @@
 import os
+import json
+import urllib.request
+from typing import List
 import pandas as pd
 from io import StringIO
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
-from langchain_community.document_loaders.csv_loader import CSVLoader
 from azure.storage.blob import BlobServiceClient
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 import chromadb
 
 # ========== Utilities ==========
+
+class AzureMLEndpointEmbeddings(Embeddings):
+    """Azure ML Endpoint integration for generating embeddings"""
+    def __init__(self):
+        pass
+    
+    def get_embeddings(self, text: str) -> List[float]:
+        """Gets embeddings from Azure ML Endpoint"""
+        body = str.encode(json.dumps({'text': text}))
+        headers = {'Content-Type':'application/json', 'Accept': 'application/json', 'Authorization':('Bearer '+ os.getenv('AZURE_ML_KEY'))}
+        
+        req = urllib.request.Request(os.getenv('AZURE_ML_EMBEDDING_ENDPOINT'), body, headers)
+        response = urllib.request.urlopen(req)
+        result = response.read()
+
+        embeddings = json.loads(json.loads(result))['embeddings']
+        return embeddings
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embeds search documents"""
+        return [self.get_embeddings(text) for text in texts]
+    
+    def embed_query(self, text: str) -> List[float]:
+        """Embeds search queries"""
+        return self.get_embeddings(text)
+    
+embeddings_client = AzureMLEndpointEmbeddings()
 
 def load_docs_from_blob():
     """
@@ -57,7 +86,7 @@ chroma_client = chromadb.CloudClient(
 
 dense_retriever = Chroma(
     collection_name='bien200', 
-    embedding_function=OllamaEmbeddings(model='dengcao/Qwen3-Embedding-0.6B:Q8_0'), 
+    embedding_function=embeddings_client, 
     client=chroma_client
 ).as_retriever(search_kwargs={'k': 4})
 
