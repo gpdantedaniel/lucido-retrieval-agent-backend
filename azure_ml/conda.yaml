@@ -1,0 +1,7 @@
+name: hugging-face-embeddings-env
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+    - azureml-inference-server-http
+    - sentence-transformers

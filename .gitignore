@@ -1,6 +1,5 @@
 .env
 embeddings
-azure_ml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
