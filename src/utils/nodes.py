@@ -1,5 +1,4 @@
 import os
-from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage
 from langmem.short_term import SummarizationNode
 from langchain_core.messages.utils import count_tokens_approximately
