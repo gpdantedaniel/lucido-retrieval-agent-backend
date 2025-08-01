@@ -1,4 +1,4 @@
-,title,content
+,title,content,specimen_name
 0,Genet skull,"title: Genet skull
 scientific name: Genetta tigrina
 located: Redpath Museum RM 660
@@ -7,7 +7,7 @@ What does a genet eat? The genet has a dentition typical of small- to medium-siz
 Is the genet active by day or night?  The genet is a nocturnal animal which spends most of its daytime resting in trees. At night, it hunts and feeds on the ground.
 Which genet species is it?  This skull was originally referred to the Cape genet (Genetta tigrina) species when it was collected more than 100 years ago. Since then, more research on the group's biology has split this species into several more, so we're not sure which of the new species the skull belongs to now.
 What are the genet’s closest evolutionary relatives?  The genet is a carnivoran mammal belonging to Family Viverridae. Hyaenas and mongooses are among this group's closest evolutionary relatives.
-"
+",RM 660 genet skull
 1,Ibis amulet,"title: Ibis amulet
 scientific name: nan
 located: Redpath Museum
@@ -15,7 +15,7 @@ RM 2413
 information: 
 What did the ibis mean to ancient Egyptians?  The sacred ibis represents Thoth, the god of wisdom and healing. 
 What is this amulet made of?  This amulet is made of steatite, a mineral occasionally nicknamed ‘soapstone’. Today, steatite is used to make products ranging from floor tiles or wood stove covers due to its ability to retain heat.
-"
+",RM 2413 ibis amulet
 2,Falcon statuette,"title: Falcon statuette
 scientific name: nan
 located: Redpath Museum
@@ -23,7 +23,7 @@ RM 2352
 information: 
 Why is this falcon statuette painted?  The polychrome patterns of this wooden statuette are a reference to Horus, the falcon-headed god of the sky.
 What else can the design of this statuette tell us?  The name Horus is derived from the ancient Egyptian Horou, which means ""the  distant"" in reference to the flight of the falcon high in the sky. 
-"
+",RM 2352 falcon statuette
 3,Scarab amulet,"title: Scarab amulet
 scientific name: nan
 located: Redpath Museum
@@ -31,7 +31,7 @@ RM 91.03.27
 information: 
 What did the scarab beetle mean to ancient Egyptians?  The scarab beetle was perceived as the incarnation of Khepri, a sun god. 
 What is this amulet made of?  This amulet is made of slate, a material which ancient Egyptians commonly used to make a wide range of objects used in their daily lives.
-"
+",RM 91.03.27 scarab amulet
 4,Lion skull,"title: Lion skull
 scientific name: Panthera leo
 located: Redpath Museum
@@ -40,7 +40,7 @@ information:
 Top of the food chain  Even if you had never watched a lion feed, you would guess immediately from this skull that this is a meat-eater. Its tooth row bears a clear distinction between incisors, massive canines, and sharp molars for slicing meat called carnassials. 
 What place did lions have in ancient Egyptian culture?  A very wide temporal fenestra behind the eyes indicates large jaw muscles which enable high bite forces necessary to catch large prey. 
 Why can’t we find lions in Egypt anymore?  During Antiquity, lions ranged across all savannas and semi-arid regions of Africa, including the Mediterranean coastline. This geographical distribution, combined with their awe-inspiring appearance, explains their predominance in several mythologies around the Mediterranean and the Middle East, from Greece to Egypt and Babylon. In Ancient Egypt, the goddess Sekhmet of war and protection was incarnated as a lioness.  
-"
+",RM 7156 lion skull
 5,Osiris figure,"title: Osiris figure
 scientific name: nan
 located: Redpath Museum
@@ -48,7 +48,7 @@ RM 2394.1
 information: 
 Who is Osiris? Osiris is such an important god in the Ancient Egyptian pantheon that he is considered to have invented agriculture and religion in that mythology. Osiris is a funerary god who is the judge of souls that reach the afterlife.
 What is this statuette made of?  This statuette is made of bronze and was donated to the Redpath Museum by the Natural History Society of Montreal.
-"
+",RM 2394.1 Osiris statuette
 6,Dog skull,"title: Dog skull
 scientific name: Canis familiaris
 located: Redpath Museum
@@ -57,7 +57,7 @@ information:
 Humans' best friend...  Millennia of artificial selection by friendly humans on some wolf groups have led to the evolution of the dog. As humans selected for certain traits, dogs now display a few anatomical differences compared to wolves, such as a steeper forehead and a shorter snout depending on the breed.  
 …Even into the afterlife  Dogs were common pets in Ancient Egypt and were often mummified to accompany their masters after they died. Other dogs were sacrificed in massive necropolises as votive offerings to Anubis, one of the main gods of death of that civilization.  
 When were dogs first domesticated in Egypt? The oldest dog bones found there are from the fifth millennium BC, long before the first pharaonic empire rose in the Nile Valley. This is not surprising since dogs were domesticated by humans many thousands of years before that, perhaps even before the first sedentary societies.  
-"
+",RM 7295 dog skull
 7,Young hippo skull,"title: Young hippo skull
 scientific name: Hippopotamus amphibius
 located: Redpath Museum
@@ -67,7 +67,7 @@ How old was this hippo?  We know that this hippo was not fully grown because (1
 Why are the eyes and nostrils right on top of the skull?  Hippos stay cool in Africa’s tropical climate by spending most of their time in water. Having their nostrils on top of their head allows them to keep breathing while bathing!  
 Do hippos eat plants or meat?  This skull shows us that hippos are herbivores because their molars and premolars are perfect for grinding grasses and aquatic plants. However, their sharp canines betray how dangerous they can be to other hippos or unfortunate humans who intrude on their patch of freshwater.   
 What place did hippos have in ancient Egyptian culture?  Hippos were admired, but also feared, by ancient Egyptians. They incarnated around 4 deities of life and fertility, but they were also prime trophies for pharaohs to hunt to display their power. Hunting may have had a role in driving hippos to extinction in Egypt, but habitat loss caused by agriculture and desertification in the Nile Valley likely contributed as well.  
-"
+",RM 5092 hippo skull
 8,Baboon skull,"title: Baboon skull
 scientific name: Papio sp.
 located: Redpath Museum
@@ -79,7 +79,7 @@ However, it is likely to be an olive baboon (Papio anubis). This is by far the m
 common baboon species in Africa, with a range spanning the entire continent from East to West between the Sahara Desert and the equatorial forest.
 Is this baboon male or female? This skull already looks very elongated and dog-like compared to most monkey skulls. It belongs to a female baboon because male baboons have even more extreme features which reflect their social status as guardians of their respective groups against predators and adversaries.
 A good friend in Ancient Egypt  Baboons were among the most common animals to be mummified as pets, alongside dogs. Of all the pets humans ever had throughout history, it is interesting to note that baboons may be among those with the closest evolutionary link to their owners.  
-"
+",RM 2392 baboon skull
 9,Warthog skull,"title: Warthog skull
 scientific name: Phacochoerus africanus
 located: Redpath Museum
@@ -89,7 +89,7 @@ Where does the name 'warthog' come from? The name ‘warthog’ comes from masse
 Why do warthogs have such large tusks? The warthog’s tusks are used during fights among their own kind. Competing warthogs often interrupt their ‘tusk-wrestling’ by thumping each other’s heads, which can result in fractures and even death. The ‘warts’ have evolved over generations as protection from such assaults.  
 What do warthogs eat? Warthogs mostly eat leaves and grasses but occasionally eat fallen fruits and small animals. Wear traces indicate where the tusks of the upper and lower jaws frequently rub each other during feeding.  
 Weird molars The last molars of the warthog’s tooth row are longer and deeper than the other molars. This ensures that at least one of the teeth they use for masticating tough plant material is durable enough.  
-"
+",RM 5089 warthog skull
 10,Falcon mummy,"title: Falcon mummy
 scientific name: Falco tinnunculus (likely)
 located: Redpath Museum
@@ -105,7 +105,7 @@ around the tomial tooth (the bump near the tip of the beak). We don’t know whe
 Why does part of the skull cover the falcon's eye? The front of the falcon's eyes is partially covered by a narrow strap-like bone. This bone is the lacrymal, and it likely acts as a sunshade for the falcon as it hunts for prey in the air, often under intense sunlight.
 The perching digit The first digit of each foot (named 
 hallux in birds) is so extended that it looks as if the falcon is perched inside the bandages.
-"
+",RM 5731 falcon mummy
 11,Falcon mummy,"title: Falcon mummy
 scientific name: Falco tinnunculus (likely)
 located: Redpath Museum
@@ -119,7 +119,7 @@ How did this mummy reach the Redpath Museum? We know that this mummy was donated
 Natural History Society of Montreal’s collections by James Ferrier, who likely acquired it during a trip to Egypt in 1859. However, there don’t exist any documents to confirm that. 
 How old is this mummy? We know that this mummy was produced around 
 15 BC (2 sigma range 52 BC to AD 24) thanks to Carbon 14 dating performed on a piece of fabric that fell off the bundle as it was being transported for CT scanning. Just an example of an initial accident with a happy ending! 
-"
+",RM 2726.2 falcon mummy
 12,Ibis mummy,"title: Ibis mummy
 scientific name: Unknown
 located: Redpath Museum
@@ -132,7 +132,7 @@ What was the role of ibises in ancient Egyptian culture? While the bill of adult
 recurved, that of juveniles is straight, as in most birds. Why? 
 Do we know exactly where this mummy was made? The ibis was a popular bird in 
 the votive mummy industry because it is the animal that represented Thoth, god of the Moon, wisdom, knowledge and writing. Adult ibises are much more similar to the depictions of Thoth, and they were also mummified, like this specimen from the British Museum.
-"
+",RM 2727.1 ibis mummy
 13,Ibis mummy?,"title: Ibis mummy?
 scientific name: nan
 located: Redpath Museum
@@ -146,7 +146,7 @@ Do we know exactly where this mummy was made? We are certain that this pseudo-
 mummy was purchased by James Ferrier in Thebes alongside the real ibis mummy. However, we don’t know whether it was really made in Thebes despite this town being one of the Nile valley’s major falcon and ibis necropolises. 
 How old is this mummy? We know that this mummy 
 was produced around 278 BC (2 sigma range 295 to 208 BC) thanks to Carbon 14 dating. The archeological record suggests that traditional animal cults became more widespread relatively late in ancient Egyptian history (i.e., after roughly 700 BC), perhaps as a reaction to increasing Greek and Roman influence. 
-"
+",RM 2727.2 ibis mummy fake
 14,Cat mummy,"title: Cat mummy
 scientific name: Felis catus
 located: Redpath Museum
@@ -158,21 +158,21 @@ The shifting appreciation of cat mummies Thousands of cats were buried in Istabl
 the first animal mummy necropolis to be found in modern Egypt in 1888. However, the scientific value of animal mummies was underappreciated back then relative to human remains. As a result, several animal mummies were sold either as curiosities to tourists, or as bulk fertilizer. For instance, one haul of around 180,000 mummies weighing 17,000 kg in total was shipped to Liverpool to fertilize Britain’s agricultural fields. 
 Was this cat wild or domesticated? This cat was probably 
 domesticated, but you can see a wild African cat elsewhere in the virtual museum.
-"
+",RM 2728.1 cat mummy
 15,Baby crocodile mummy,"title: Baby crocodile mummy
 scientific name: Crocodylus suchus (likely)
 located: Redpath Museum
 RM 2725.1
 information: 
 
-"
+",RM 2725-01 croc mummy
 16,Baby crocodile mummy,"title: Baby crocodile mummy
 scientific name: Crocodylus suchus (likely)
 located: Redpath Museum
 RM 2725.2
 information: 
 
-"
+",RM 2725-02 croc mummy
 17,Baby caiman,"title: Baby caiman
 scientific name: Caiman crocodilus 
 located: Redpath Museum
@@ -181,7 +181,7 @@ information:
 How was the hole in this skull made? The hole on top of the skull is likely a 
 piercing mark from a sharp object such as a predator’s tooth or a stick. We don’t know the exact cause of this baby caiman’s death.
 Femur orientation Teeth: some teeth were about to replace older ones when this caiman died. 
-"
+",RM 3827 pickled caiman
 18,Adult caiman,"title: Adult caiman
 scientific name: Caiman crocodilus 
 located: Redpath Museum
@@ -190,24 +190,24 @@ information:
 How old was this caiman? The cervical vertebrae in this individual 
 are fully fused, which indicates that it was mature. 
 What are these bones that float above the orbits? These bones are called palpebrals and act as sun shades for crocodilians when ambushing prey near the water surface. They are much larger in adults than in juveniles.
-"
+",RM 5255 frozen caiman
 19,Juvenile alligator,"title: Juvenile alligator
 scientific name: Alligator mississippiensis 
 located: Redpath Museum
 RM xxxx
 information: 
 
-"
+",RM xx frozen Alligator
 20,Frozen hawk,"title: Frozen hawk
 scientific name: tbd
 located: Redpath Museum
 RM 2019-04-07
 information: 
 
-"
+",RM 2019-04-07 frozen hawk
 21,Ammonite shell,"title: Ammonite shell
 scientific name: tbd
 located: McKee Collection
 information: 
 
-"
+",Fossil ammonite (McKee collection)
