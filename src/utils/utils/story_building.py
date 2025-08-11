@@ -123,6 +123,9 @@ def build_cheatsheet_story(title, concepts, definitions, examples, references):
     story = []  # Create story content
     story.append(Paragraph(title, styles['CheatsheetTitle']))
 
+    if not (len(concepts) == len(definitions) and len(definitions) == len(examples)):
+        raise Exception('concepts, definitions and examples must all be of the same length')
+
     for concept, c_definition, c_examples in zip(concepts, definitions, examples):
          # Add the concept header
         story.append(Paragraph(concept, styles['Concept']))
