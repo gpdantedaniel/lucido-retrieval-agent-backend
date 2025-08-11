@@ -15,8 +15,6 @@ dependencies = [
     "langchain-openai>=0.3.28",
     "azure-storage-blob>=12.26.0",
     "genanki>=0.13.1",
-    "kokoro>=0.9.4",
-    "soundfile>=0.13.1",
     "openai>=1.97.1",
     "reportlab==4.4.3",
     "pandas>=2.3.1",
