@@ -37,15 +37,13 @@ tool_routes = {
 
 # Add our nodes
 workflow.add_node('home', home)
-workflow.add_node('summarize', summarization_node)
 workflow.add_node('retrieval_tool', ToolNode([retrieval_tool]))
 workflow.add_node('cheatsheet_tool', ToolNode([cheatsheet_tool]))
 workflow.add_node('quiz_tool', ToolNode([quiz_tool]))
 workflow.add_node('flashcards_tool', ToolNode([flashcards_tool]))
 
 # Add our edges
-workflow.add_edge(START, 'summarize')
-workflow.add_edge('summarize', 'home')
+workflow.add_edge(START, 'home')
 workflow.add_conditional_edges('home', route_tool, tool_routes)
 workflow.add_edge('retrieval_tool', 'home')
 workflow.add_edge('cheatsheet_tool', 'home')
