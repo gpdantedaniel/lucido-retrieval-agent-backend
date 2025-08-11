@@ -145,9 +145,9 @@ class CheatsheetInputSchema(BaseModel):
 
 class QuizInputSchema(BaseModel):
     title: str = Field(description='The main title of the quiz')
-    questions: List[str] = Field(description='An ordered list of all the questions.')
-    distractor_answers: List[List[str]] = Field(description='An ordered list of lists of distractors answers for each question.')
-    true_answers: List[str] = Field(description='An ordered list of the true answers for each question.')
+    questions: List[str] = Field(description='An ordered list of all the questions. Must not have any indexing')
+    distractor_answers: List[List[str]] = Field(description='An ordered list of lists of distractors answers for each question. Must not have any indexing or lettering.')
+    true_answers: List[str] = Field(description='An ordered list of the true answers for each question. Must not have any indexing or lettering.')
     state: Annotated[dict, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
 
@@ -221,7 +221,7 @@ def cheatsheet_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Cheatsheet successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                content='Cheatsheet successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
@@ -258,7 +258,7 @@ def quiz_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Quiz successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                content='Quiz successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
@@ -305,7 +305,7 @@ def flashcards_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Flashcards successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                content='Flashcards successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
@@ -338,7 +338,7 @@ def podcast_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Podcast successfully generated. Download link has been shared with user. Do not generate any download link.', 
+                content='Podcast successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )

@@ -11,7 +11,7 @@ from langchain_openai import AzureChatOpenAI
 # summarizer_model = ChatOllama(model='qwen3:14b', reasoning=False, temperature=0.6, top_p=0.92, top_k=20, num_predict=2048)
 
 chat_model = summarizer_model = AzureChatOpenAI(
-    azure_deployment='gpt-4o-mini', 
+    azure_deployment='gpt-5-nano', 
     api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
     azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),
     openai_api_key=os.getenv('AZURE_OPENAI_API_KEY')
@@ -30,7 +30,8 @@ You should avoid using your own knowledge if it is not backed by retrieved knowl
 When retrieving knowledge, search for any relevant, specific design solutions.
 If necessary, try breaking up the query into multiple queries.
 Your knowledge base consists of papers written by students about organisms and their design solutions.
-When using tools, please respect and consider their accepted argument types as well as any instruction that comes with them.""")
+When using tools, please respect and consider their accepted argument types as well as any instruction that comes with them.
+When creating learning resources, be verbose when generating their content to make rich study aids. Otherwise, be concise.""")
 
 # ========== Nodes ==========
 
