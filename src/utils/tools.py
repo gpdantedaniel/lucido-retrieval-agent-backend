@@ -139,7 +139,6 @@ class CheatsheetInputSchema(BaseModel):
     title: str = Field(description='The main title of the cheatsheet')
     concepts: List[str] = Field(description='An ordered list of all concepts included in the cheatsheet. This helps in organizing the output.')
     definitions: List[str] = Field(description='A mapping from each concept to its definition where applicable')
-    equations: List[List[str]] = Field(description='A mapping from each concept to a list of related equations where applicable.')
     examples: List[List[str]] = Field(description='A mapping from each concept to a list of illustrative examples where applicable.')
     state: Annotated[dict, InjectedState]
     tool_call_id: Annotated[str, InjectedToolCallId]
@@ -195,7 +194,6 @@ def cheatsheet_tool(
     title: str, 
     concepts: List[str], 
     definitions: List[str], 
-    equations: List[List[str]], 
     examples: List[List[str]],
     state: Annotated[dict, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId]
@@ -203,6 +201,7 @@ def cheatsheet_tool(
     """
     Generates a cheatsheet.
     Use if the user requests one.
+    Inputs must be of equal length.
     """
     # Generate document
     buffer = BytesIO()
@@ -213,7 +212,7 @@ def cheatsheet_tool(
     references = list(set([source for call in retrieval_calls for source in call.artifact['sources'].split('\n\n')]))
 
     # Build the PDF document
-    story = build_cheatsheet_story(title, concepts, definitions, equations, examples, references)
+    story = build_cheatsheet_story(title, concepts, definitions, examples, references)
     doc.build(story)
 
     buffer.seek(0) # Reset once finished building
@@ -240,7 +239,7 @@ def quiz_tool(
 ):
     """
     Generates a multiple-choice quiz.
-    Use if the user requests one.
+    All inputs must be of equal length.
     """
     # Generate document
     buffer = BytesIO()

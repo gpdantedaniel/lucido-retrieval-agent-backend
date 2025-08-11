@@ -115,7 +115,7 @@ styles.add(ParagraphStyle(
 # ========== Story Building Functions ==========
 
 
-def build_cheatsheet_story(title, concepts, definitions, equations, examples, references):
+def build_cheatsheet_story(title, concepts, definitions, examples, references):
     """
     Generates a ReportLab-styles story
     returned as a list of Reportlab elements
@@ -123,19 +123,14 @@ def build_cheatsheet_story(title, concepts, definitions, equations, examples, re
     story = []  # Create story content
     story.append(Paragraph(title, styles['CheatsheetTitle']))
 
-    for concept, c_definition, c_equations, c_examples in zip (concepts, definitions, equations, examples):
-        story.append(Paragraph(concept, styles['Concept'])) # Concept header
-        
+    for concept, c_definition, c_examples in zip(concepts, definitions, examples):
+         # Add the concept header
+        story.append(Paragraph(concept, styles['Concept']))
+
         # Add the definition
         if c_definition:
             story.append(Paragraph("<b>Definition</b>", styles['Subheader']))
             story.append(Paragraph(c_definition, styles['Body']))
-        
-        # Add every equation if there are any
-        if len(c_equations) > 0:
-            story.append(Paragraph("<b>Equations</b>", styles['Subheader']))
-            for eq in c_equations:
-                story.append(Paragraph(eq, styles['Bullet']))
         
         # Add examples
         if len(c_examples) > 0:
