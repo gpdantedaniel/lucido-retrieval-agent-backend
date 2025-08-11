@@ -14,7 +14,6 @@ from io import BytesIO
 from uuid import uuid4
 import random
 import genanki
-from kokoro import KPipeline
 import numpy as np
 import soundfile as sf
 from openai import AzureOpenAI
@@ -325,6 +324,8 @@ def podcast_tool(
     Use if the user requests one.
     The content should be plain text free prose with absolutely no formatting whatsoever.
     """
+    # Retired until an outsourced implementation is available
+    """
     pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
     generator = pipeline(content, voice='af_heart', split_pattern=None)
     audio = np.concatenate([segment[-1] for segment in generator])
@@ -344,3 +345,4 @@ def podcast_tool(
             )
         ]
     })
+    """

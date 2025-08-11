@@ -3,7 +3,7 @@ from langgraph.prebuilt import ToolNode
 
 from src.utils.state import State
 from src.utils.nodes import home, summarization_node
-from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool
+from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool
 
 workflow = StateGraph(State)
 
@@ -32,7 +32,6 @@ tool_routes = {
     'cheatsheet_tool': 'cheatsheet_tool',
     'quiz_tool': 'quiz_tool',
     'flashcards_tool': 'flashcards_tool',
-    'podcast_tool': 'podcast_tool',
     END: END
 }
 
@@ -43,7 +42,6 @@ workflow.add_node('retrieval_tool', ToolNode([retrieval_tool]))
 workflow.add_node('cheatsheet_tool', ToolNode([cheatsheet_tool]))
 workflow.add_node('quiz_tool', ToolNode([quiz_tool]))
 workflow.add_node('flashcards_tool', ToolNode([flashcards_tool]))
-workflow.add_node('podcast_tool', ToolNode([podcast_tool]))
 
 # Add our edges
 workflow.add_edge(START, 'summarize')
@@ -53,6 +51,5 @@ workflow.add_edge('retrieval_tool', 'home')
 workflow.add_edge('cheatsheet_tool', 'home')
 workflow.add_edge('quiz_tool', 'home')
 workflow.add_edge('flashcards_tool', 'home')
-workflow.add_edge('podcast_tool', 'home')
 
 graph = workflow.compile()

@@ -3,7 +3,7 @@ from langchain_core.messages import SystemMessage
 from langmem.short_term import SummarizationNode
 from langchain_core.messages.utils import count_tokens_approximately
 from src.utils.state import HomeInputState
-from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool
+from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool
 from langchain_openai import AzureChatOpenAI
 
 # Configuration recommended by https://huggingface.co/Qwen/Qwen3-8B
@@ -17,7 +17,7 @@ chat_model = summarizer_model = AzureChatOpenAI(
     openai_api_key=os.getenv('AZURE_OPENAI_API_KEY')
 )
 
-tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool, podcast_tool]
+tools = [retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool]
 
 # ========== Prompts and messages ==========
 
