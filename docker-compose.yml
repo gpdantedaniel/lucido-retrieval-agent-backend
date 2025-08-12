@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      -"6379:6379"
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER: myuser
+      - POSTGRES_PASSWORD: mypassword
+      - POSTGRES_DB: mydb
+    volumes:
+        - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+   # LangGraph Server
+  langgraph-server:
+    image: your-langgraph-image:latest  # Replace with your actual image
+    container_name: langgraph-server
+    env_file:
+      - ./langgraph-env/.env  # Environment variables
+    ports:
+      - "7860:7860"  # Expose LangGraph port
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - app-network
+    
+  # Next.js Application
+  nextjs-app:
+    build:
+      context: ./nextjs-app
+      dockerfile: Dockerfile
+    container_name: nextjs-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_LANGGRAPH_API=http://langgraph-server:7860
+    depends_on:
+      - langgraph-server
+    networks:
+      - app-network

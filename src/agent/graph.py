@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 
 from src.utils.state import State
-from src.utils.nodes import home, summarization_node
+from src.utils.nodes import home
 from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool
 
 workflow = StateGraph(State)

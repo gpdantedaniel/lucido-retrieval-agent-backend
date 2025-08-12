@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 from io import StringIO
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
@@ -31,21 +31,21 @@ def load_docs_from_blob():
     downloaded_blob = blob_client.download_blob()
     csv_content = downloaded_blob.content_as_text()
 
-    # Convert CSV string to DataFrame
-    df = pd.read_csv(StringIO(csv_content))
-
     docs = []
 
-    for _, row in df.iterrows():
+    # Parse CSV string with csv.DictReader
+    reader = csv.DictReader(StringIO(csv_content))
+
+    for row in reader:
         docs.append(Document(
-        page_content=row['content'],
-        metadata={
-            'url': row['url'], 
-            'title': row['title'], 
-            'authors': row['authors']
-        }
-    ))
-        
+            page_content=row['content'],
+            metadata={
+                'url': row['url'], 
+                'title': row['title'], 
+                'authors': row['authors']
+            }
+        ))
+            
     return docs
 
 # ========== Retrievers ==========

@@ -1,14 +1,12 @@
 import os
 from langchain_core.messages import SystemMessage
-from langmem.short_term import SummarizationNode
-from langchain_core.messages.utils import count_tokens_approximately
 from src.utils.state import HomeInputState
 from src.utils.tools import retrieval_tool, cheatsheet_tool, quiz_tool, flashcards_tool
 from langchain_openai import AzureChatOpenAI
 
-# Configuration recommended by https://huggingface.co/Qwen/Qwen3-8B
-# chat_model = ChatOllama(model='qwen3:14b', reasoning=True, temperature=0.6, top_p=0.95, top_k=20, num_predict=2048)
-# summarizer_model = ChatOllama(model='qwen3:14b', reasoning=False, temperature=0.6, top_p=0.92, top_k=20, num_predict=2048)
+# The below can be uncommented when Summarization becomes necessary
+# from langmem.short_term import SummarizationNode
+# from langchain_core.messages.utils import count_tokens_approximately
 
 chat_model = summarizer_model = AzureChatOpenAI(
     azure_deployment='gpt-5-nano', 
@@ -44,6 +42,7 @@ def home(state: HomeInputState):
     
     return {'messages': [response]}
 
+"""
 summarization_node = SummarizationNode(
     model=summarizer_model,
     max_tokens=2048,
@@ -52,3 +51,4 @@ summarization_node = SummarizationNode(
     token_counter=count_tokens_approximately,
     input_messages_key='messages',
 )
+"""

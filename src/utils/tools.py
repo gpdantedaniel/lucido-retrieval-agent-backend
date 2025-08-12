@@ -14,8 +14,6 @@ from io import BytesIO
 from uuid import uuid4
 import random
 import genanki
-import numpy as np
-import soundfile as sf
 from openai import AzureOpenAI
 
 from src.utils.utils.story_building import generate_doc, generate_flashcard_doc, build_cheatsheet_story, build_quiz_story, build_flashcards_story
