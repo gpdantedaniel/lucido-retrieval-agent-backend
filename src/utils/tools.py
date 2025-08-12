@@ -219,7 +219,9 @@ def cheatsheet_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Cheatsheet successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
+                content="""Cheatsheet successfully generated. 
+                Inform the user of the successful operation.
+                Stop immediately after informing them.""", 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
@@ -256,7 +258,9 @@ def quiz_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Quiz successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
+                content="""Quiz successfully generated. 
+                Inform the user of the successful operation.
+                Stop immediately after informing them.""", 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
@@ -303,7 +307,9 @@ def flashcards_tool(
     return Command(update={
         'messages': [
             ToolMessage(
-                content='Flashcards successfully generated. Download link has been shared with user. Do not generate any download link. Only inform the user that it has been shared with them.', 
+                content="""Flashcards successfully generated. 
+                Inform the user of the successful operation.
+                Stop immediately after informing them.""", 
                 artifact={'download_url': download_url}, 
                 tool_call_id=tool_call_id
             )
