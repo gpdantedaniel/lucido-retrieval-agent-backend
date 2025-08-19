@@ -1,0 +1,9 @@
+FROM chromadb/chroma
+
+COPY chroma /chroma
+
+COPY chroma-config.yaml config.yaml
+
+ENV PERSIST_DIRECTORY=/chroma
+
+EXPOSE 8000
