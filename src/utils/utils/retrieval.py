@@ -50,11 +50,22 @@ def load_docs_from_blob():
 
 # ========== Retrievers ==========
 
-chroma_client = chromadb.CloudClient(
-    tenant=os.getenv('CHROMA_TENANT'),
-    database=os.getenv('CHROMA_DATABASE'),
-    api_key=os.getenv('CHROMA_API_KEY')
-)
+if os.getenv('CHROMA_HOST') and os.getenv('CHROMA_POR'):
+    # Adapted specifically for docker-compose
+    chroma_client = chromadb.HttpClient(
+        host=os.getenv('CHROMA_HOST'),
+        port=int(os.getenv('CHROMA_PORT'))
+    )
+
+    print('Using local chroma client')
+
+else:
+    # Default to cloud client
+    chroma_client = chromadb.CloudClient(
+        tenant=os.getenv('CHROMA_TENANT'),
+        database=os.getenv('CHROMA_DATABASE'),
+        api_key=os.getenv('CHROMA_API_KEY')
+    )
 
 dense_retriever = Chroma(
     collection_name='bien200', 
